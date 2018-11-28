@@ -23,34 +23,59 @@ PoisonMap = [
 	
 creatorWidget = None
 	
-def createMap():
+class CreateMapWidget(QWidget):
+	flowMap = None
+	rowsEdit = None
+	colsEdit = None
+	def __init__(self):
+		super(CreateMapWidget, self).__init__()
+		self.setGeometry(400, 400, 500, 600)
+		self.setWindowTitle('Створити карту')
+		
+		lbl1 = QLabel("Довжина:", self)
+		lbl1.move(20, 20)
+		lbl2 = QLabel("Ширина:", self)
+		lbl2.move(20, 60)
+		
+		rowsEdit = QLineEdit(self)
+		rowsEdit.setValidator(QIntValidator())
+		rowsEdit.setMaxLength(2)
+		rowsEdit.setAlignment(Qt.AlignRight)
+		rowsEdit.setFont(QFont("Arial",20))
+		rowsEdit.move(120, 20)
+		self.rowsEdit = rowsEdit
+		
+		colsEdit = QLineEdit(self)
+		colsEdit.setValidator(QIntValidator())
+		colsEdit.setMaxLength(2)
+		colsEdit.setAlignment(Qt.AlignRight)
+		colsEdit.setFont(QFont("Arial", 20))
+		colsEdit.move(120, 60)
+		self.colsEdit = colsEdit
+		
+		createMapBtn = QPushButton("Створити карту", self)
+		createMapBtn.move(20, 100)
+		createMapBtn.clicked.connect(lambda:self.createMap())
+		
+		self.flowMap = FlowMap((400, 20), (2, 2), [[0, 0], [0, 0]],
+			[[0, 0], [0, 0]], self, 10, 10, 50)
+		
+		self.show()
+		
+	def createMap(self):
+		self.flowMap.hide()
+		del(self.flowMap)
+		rows = int(self.rowsEdit.text())
+		cols = int(self.colsEdit.text())
+		self.flowMap = FlowMap((400, 20), (rows, cols),
+			[[0 for j in range(cols)] for i in range(rows)],
+			[[0 for j in range(cols)] for i in range(rows)], self, 10, 10, 50)
+		self.flowMap.show()
+		
+def createMapWidgetSlot():
 	global creatorWidget
-	print('invoking createMap()...')
-	creatorWidget = QWidget()
-	creatorWidget.setGeometry(400, 400, 500, 600)
-	creatorWidget.setWindowTitle('Створити карту')
+	creatorWidget = CreateMapWidget()
 	
-	lbl1 = QLabel("Довжина:", creatorWidget)
-	lbl1.move(20, 20)
-	lbl2 = QLabel("Ширина:", creatorWidget)
-	lbl2.move(20, 60)
-	
-	rowsEdit = QLineEdit(creatorWidget)
-	rowsEdit.setValidator(QIntValidator())
-	rowsEdit.setMaxLength(2)
-	rowsEdit.setAlignment(Qt.AlignRight)
-	rowsEdit.setFont(QFont("Arial",20))
-	rowsEdit.move(120, 20)
-	
-	colsEdit = QLineEdit(creatorWidget)
-	colsEdit.setValidator(QIntValidator())
-	colsEdit.setMaxLength(2)
-	colsEdit.setAlignment(Qt.AlignRight)
-	colsEdit.setFont(QFont("Arial",20))
-	colsEdit.move(120, 60)
-	
-	creatorWidget.show()
-
 
 if __name__ == '__main__':
 	app = QApplication(sys.argv)
@@ -64,10 +89,10 @@ if __name__ == '__main__':
 	
 	createMapBtn = QPushButton("Створити карту", w)
 	createMapBtn.move(20, 50)
-	createMapBtn.clicked.connect(createMap)
+	createMapBtn.clicked.connect(createMapWidgetSlot)
 	
     #Карта:
-	fm = FlowMap((len(Map), len(Map[0])), Map, PoisonMap, w, 10, 10, 50)
+	fm = FlowMap((150, 20), (len(Map), len(Map[0])), Map, PoisonMap, w, 10, 10, 50)
 	stepBtn.clicked.connect(fm.step)
 	
 	w.show()

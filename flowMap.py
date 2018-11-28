@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QFrame
+from PyQt5.QtWidgets import QFrame, QWidget
 from PyQt5.QtGui import QPainter, QColor, QFont, QPen
 from PyQt5.QtCore import Qt, QPoint
 
@@ -76,14 +76,16 @@ class Area(QFrame):
 			qp.drawLine(QPoint(0, height/2), QPoint(width/4, 3*height/4))
 		qp.end()
 
-class FlowMap:
+class FlowMap(QWidget):
 	rows = None
 	cols = None
 	Map = []
-	def __init__(self, size, initial_flowMap, initial_poisonMap,
+	def __init__(self, topLeft, size, initial_flowMap, initial_poisonMap,
 		parentalWidget, distance, interval, area_size):
+		super(FlowMap, self).__init__(parentalWidget)
+		super(FlowMap, self).setGeometry(topLeft[0], topLeft[1],
+			size[0]*(area_size + distance + 1), size[1]*(area_size + interval + 1))
 		self.size = size
-		topLeft = (150, 20)
 		self.rows = size[0]
 		self.cols = size[1]
 		for i in range(self.rows):
@@ -92,10 +94,26 @@ class FlowMap:
 				poison = False
 				if initial_poisonMap[i][j] == 1:
 					poison = True
-				frame = Area(initial_flowMap[i][j], poison, parentalWidget)
+				frame = Area(initial_flowMap[i][j], poison, self)
 				self.Map[i].append(frame)
-				frame.setGeometry(topLeft[0] + j*(area_size + distance),
-					topLeft[1] + i*(area_size + interval), area_size, area_size)
+				frame.setGeometry(j*(area_size + distance),
+					i*(area_size + interval), area_size, area_size)
+				frame.show()
+		
+	#Полная ЕРЕСЬ
+	'''def setMap(self, size, initial_flowMap, initial_poisonMap,
+		parentalWidget, distance, interval, area_size):
+		print('invoking setMap()')
+		for i in range(self.rows - 1, -1, -1):
+			for j in range(self.cols - 1, -1, -1):
+				self.Map[i][j].hide()
+				del(self.Map[i][j])
+			del(self.Map[i])
+		self.__init__(size, initial_flowMap, initial_poisonMap,
+			parentalWidget, distance, interval, area_size)
+		for i in range(self.rows):
+			for j in range(self.cols):
+				self.Map[i][j].show()'''
 	
 	def step(self):
 		if self.rows > 1:	#TODO: определить ситуации, когда rows == 1 или cols == 1
@@ -124,4 +142,4 @@ class FlowMap:
 							elif self.Map[i][j].orientation == NorthernWest:
 								areaToPoison = self.Map[i - 1][j - 1]
 							areaToPoison.poisoned = True
-							areaToPoison.repaint()
+							#areaToPoison.repaint()
