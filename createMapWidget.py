@@ -55,7 +55,9 @@ class AreasPanel(QWidget):
 		poisonPict.clicked.connect(parentWidget.areaPanelClickedSlot)
 		
 		self.show()
-	
+
+#TODO: Реализовать возможность рисования не отпуская ЛКМ	
+#TODO: Диалог о параметрах карты
 class CreateMapWidget(QWidget):
 	def __init__(self, parentWidget):
 		super(CreateMapWidget, self).__init__()
@@ -117,7 +119,8 @@ class CreateMapWidget(QWidget):
 			[[0 for j in range(cols)] for i in range(rows)], self, 10, 10, 50)
 		self.flowMap.show()
 		self.flowMap.bindClickedSignal(self)
-		self.update()
+		self.hide()
+		self.show()
 		
 	#слот для обработки кликов на панели пиктограм
 	def areaPanelClickedSlot(self):
