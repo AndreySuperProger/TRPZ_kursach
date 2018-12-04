@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QFrame, QWidget
-from PyQt5.QtGui import QPainter, QColor, QFont, QPen
+from PyQt5.QtGui import QPainter, QColor, QFont, QPen, QImage
 from PyQt5.QtCore import Qt, QPoint, pyqtSignal
 
 #Направление течения в конкретной точке:
@@ -18,10 +18,12 @@ NorthernWest = 8
 class Area(QFrame):
 	clicked = pyqtSignal()
 	
-	def __init__(self, waterFlow, poisoned, parentalWidget):
+	def __init__(self, waterFlow, poisoned, shipIsPresent, parentalWidget):
 		super(Area, self).__init__(parentalWidget)
 		self.orientation = waterFlow
 		self.poisoned = poisoned
+		#корабыль-чистильщик
+		self.shipIsPresent = shipIsPresent
 		
 	def refreshColor(self):
 		color = 'blue'
@@ -41,38 +43,42 @@ class Area(QFrame):
 		
 		height = self.frameRect().height()
 		width = self.frameRect().width()
-		if self.orientation == NorthernWest:
-			qp.drawLine(QPoint(0, 0), QPoint(width, height))
-			qp.drawLine(QPoint(0, 0), QPoint(0,	height/3))
-			qp.drawLine(QPoint(0, 0), QPoint(width/3, 0))
-		elif self.orientation == North:
-			qp.drawLine(QPoint(width/2, height), QPoint(width/2, 0))
-			qp.drawLine(QPoint(width/2, 0), QPoint(width/4, height/3))
-			qp.drawLine(QPoint(width/2, 0), QPoint(3*width/4, height/3))
-		elif self.orientation == NorthernEast:
-			qp.drawLine(QPoint(width, 0), QPoint(0, height))
-			qp.drawLine(QPoint(width, 0), QPoint(width,	height/3))
-			qp.drawLine(QPoint(width, 0), QPoint(2*width/3, 0))
-		elif self.orientation == East:
-			qp.drawLine(QPoint(0, height/2), QPoint(width, height/2))
-			qp.drawLine(QPoint(width, height/2), QPoint(3*width/4, height/4))
-			qp.drawLine(QPoint(width, height/2), QPoint(3*width/4, 3*height/4))
-		elif self.orientation == SouthernEast:
-			qp.drawLine(QPoint(0, 0), QPoint(width, height))
-			qp.drawLine(QPoint(width, height), QPoint(2*width/3, height))
-			qp.drawLine(QPoint(width, height), QPoint(width, 2*height/3))
-		elif self.orientation == South:
-			qp.drawLine(QPoint(width/2, height), QPoint(width/2, 0))
-			qp.drawLine(QPoint(width/2, height), QPoint(width/4, 2*height/3))
-			qp.drawLine(QPoint(width/2, height), QPoint(3*width/4, 2*height/3))
-		elif self.orientation == SouthernWest:
-			qp.drawLine(QPoint(width, 0), QPoint(0, height))
-			qp.drawLine(QPoint(0, height), QPoint(width/3, height))
-			qp.drawLine(QPoint(0, height), QPoint(0, 2*height/3))
-		elif self.orientation == West:
-			qp.drawLine(QPoint(0, height/2), QPoint(width, height/2))
-			qp.drawLine(QPoint(0, height/2), QPoint(width/4, height/4))
-			qp.drawLine(QPoint(0, height/2), QPoint(width/4, 3*height/4))
+		
+		if self.shipIsPresent:
+			qp.drawImage(self.frameRect(), QImage("images/ship.png"))
+		else:
+			if self.orientation == NorthernWest:
+				qp.drawLine(QPoint(0, 0), QPoint(width, height))
+				qp.drawLine(QPoint(0, 0), QPoint(0,	height/3))
+				qp.drawLine(QPoint(0, 0), QPoint(width/3, 0))
+			elif self.orientation == North:
+				qp.drawLine(QPoint(width/2, height), QPoint(width/2, 0))
+				qp.drawLine(QPoint(width/2, 0), QPoint(width/4, height/3))
+				qp.drawLine(QPoint(width/2, 0), QPoint(3*width/4, height/3))
+			elif self.orientation == NorthernEast:
+				qp.drawLine(QPoint(width, 0), QPoint(0, height))
+				qp.drawLine(QPoint(width, 0), QPoint(width,	height/3))
+				qp.drawLine(QPoint(width, 0), QPoint(2*width/3, 0))
+			elif self.orientation == East:
+				qp.drawLine(QPoint(0, height/2), QPoint(width, height/2))
+				qp.drawLine(QPoint(width, height/2), QPoint(3*width/4, height/4))
+				qp.drawLine(QPoint(width, height/2), QPoint(3*width/4, 3*height/4))
+			elif self.orientation == SouthernEast:
+				qp.drawLine(QPoint(0, 0), QPoint(width, height))
+				qp.drawLine(QPoint(width, height), QPoint(2*width/3, height))
+				qp.drawLine(QPoint(width, height), QPoint(width, 2*height/3))
+			elif self.orientation == South:
+				qp.drawLine(QPoint(width/2, height), QPoint(width/2, 0))
+				qp.drawLine(QPoint(width/2, height), QPoint(width/4, 2*height/3))
+				qp.drawLine(QPoint(width/2, height), QPoint(3*width/4, 2*height/3))
+			elif self.orientation == SouthernWest:
+				qp.drawLine(QPoint(width, 0), QPoint(0, height))
+				qp.drawLine(QPoint(0, height), QPoint(width/3, height))
+				qp.drawLine(QPoint(0, height), QPoint(0, 2*height/3))
+			elif self.orientation == West:
+				qp.drawLine(QPoint(0, height/2), QPoint(width, height/2))
+				qp.drawLine(QPoint(0, height/2), QPoint(width/4, height/4))
+				qp.drawLine(QPoint(0, height/2), QPoint(width/4, 3*height/4))
 		qp.end()
 		
 	def mousePressEvent(self, event):
@@ -80,7 +86,7 @@ class Area(QFrame):
 
 class FlowMap(QWidget):
 	def __init__(self, topLeft, size, initial_flowMap, initial_poisonMap,
-		parentWidget, distance, interval, area_size):
+		initial_shipsPositionMap, parentWidget, distance, interval, area_size):
 		super(FlowMap, self).__init__(parentWidget)
 		height = (size[0] + 1)*(area_size + distance)
 		width = (size[1] + 1)*(area_size + interval)
@@ -98,7 +104,10 @@ class FlowMap(QWidget):
 				poison = False
 				if initial_poisonMap[i][j] == 1:
 					poison = True
-				frame = Area(initial_flowMap[i][j], poison, self)
+				ship = False
+				if initial_shipsPositionMap[i][j] == 1:
+					ship = True
+				frame = Area(initial_flowMap[i][j], poison, ship, self)
 				self.Map[i].append(frame)
 				frame.setGeometry(j*(area_size + distance),
 					i*(area_size + interval), area_size, area_size)
@@ -127,7 +136,8 @@ class FlowMap(QWidget):
 			self.Map.append([])
 			for j in range(self.cols):
 				frameToCopy = itemToCopy.Map[i][j]
-				frame = Area(frameToCopy.orientation, frameToCopy.poisoned, self)
+				frame = Area(frameToCopy.orientation, frameToCopy.poisoned,
+					frameToCopy.shipIsPresent, self)
 				self.Map[i].append(frame)
 				frame.setGeometry(j*(self.area_size + self.distance),
 					i*(self.area_size + self.interval), self.area_size, self.area_size)
@@ -143,6 +153,7 @@ class FlowMap(QWidget):
 	def step(self):
 		poisonedAreas = [(self.Map[i][j], i, j) for i in range(self.rows)
 			for j in range(self.cols) if self.Map[i][j].poisoned]
+		#рассчитать загрязненные територии на этом шаге
 		for areaTuple in poisonedAreas:
 			area = areaTuple[0]
 			i = areaTuple[1]
@@ -176,3 +187,43 @@ class FlowMap(QWidget):
 					
 			if areaToPoison:
 				areaToPoison.poisoned = True
+				
+		areasWithShips = [(self.Map[i][j], i, j) for i in range(self.rows)
+			for j in range(self.cols) if self.Map[i][j].shipIsPresent]
+		#рассчитать куда поплывут корабли
+		#TODO: хорошо бы инкапсулировать в отдельный класс
+		#TODO: обновить перед этим poisonedAreas
+		#TODO: добавить переменный радиус действия кораблей
+		for shipTuple in areasWithShips:
+			area = shipTuple[0]
+			i = shipTuple[1]
+			j = shipTuple[2]
+			
+			if poisonedAreas:
+				areaToFollow = min([areaTuple for areaTuple in poisonedAreas],
+					key = lambda item: abs(item[1] - i) + abs(item[2] - j))
+				areaToFollow_i = areaToFollow[1]
+				areaToFollow_j = areaToFollow[2]
+				areaToGo = [0, 0]
+				if i < areaToFollow_i:
+					areaToGo[0] = 1
+				elif i > areaToFollow_i:
+					areaToGo[0] = -1
+				if j < areaToFollow_j:
+					areaToGo[1] = 1
+				elif j > areaToFollow_j:
+					areaToGo[1] = -1
+				#areaToGo += [i, j]
+				areaToGo[0] += i
+				areaToGo[1] += j
+				
+				area.shipIsPresent = False
+				self.Map[areaToGo[0]][areaToGo[1]].shipIsPresent = True
+				
+				#пересчёт загрезненных областей:
+				for i in range(self.rows):
+					for j in range(self.cols):
+						#радиус
+						if (areaToGo[0] - i)**2 + (areaToGo[1] - j)**2 <= 1 \
+							and self.Map[i][j].poisoned:
+							self.Map[i][j].poisoned = False

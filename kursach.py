@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QPushButton, QLineEdit, QLabel
 from PyQt5.QtGui import QIntValidator
 
 
-Map = [[NoFlow, NoFlow, NoFlow, Land, Land],
+'''Map = [[NoFlow, NoFlow, NoFlow, Land, Land],
 	[NoFlow, West, West, NorthernWest, Land],
 	[NoFlow, West, West, NorthernWest, Land],
 	[NoFlow, West, West, NorthernWest, Land],
@@ -19,21 +19,63 @@ PoisonMap = [
 	[0, 0, 0, 0, 0],
 	[0, 0, 0, 0, 0]]
 	
+ShipsPositionMap = [
+	[1, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0]]'''
+	
 '''Map = [
 	[NoFlow, NoFlow, NoFlow],
-	[NoFlow, NorthernWest, NoFlow],
+	[NoFlow, NoFlow, NoFlow],
 	[NoFlow, NoFlow, NoFlow]]
 	
 PoisonMap = [
+	[1, 1, 1],
+	[1, 1, 1],
+	[1, 1, 1]]
+	
+ShipsPositionMap = [
 	[0, 0, 0],
 	[0, 1, 0],
 	[0, 0, 0]]'''
+	
+Map = [
+	[NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow],
+	[NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow],
+	[NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow],
+	[NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow],
+	[NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow],
+	[NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow],
+	[NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow],
+	[NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow]]
+	
+PoisonMap = [
+	[1, 1, 1, 1, 1, 1, 1, 1],
+	[1, 1, 1, 1, 1, 1, 1, 1],
+	[1, 1, 1, 1, 1, 1, 1, 1],
+	[1, 1, 1, 1, 1, 1, 1, 1],
+	[1, 1, 1, 1, 1, 1, 1, 1],
+	[1, 1, 1, 1, 1, 1, 1, 1],
+	[1, 1, 1, 1, 1, 1, 1, 1],
+	[1, 1, 1, 1, 1, 1, 1, 1]]
+	
+ShipsPositionMap = [
+	[0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 1, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0],
+	[0, 0, 0, 0, 0, 0, 0, 0]]
 
 class MainWindow(QWidget):
 	def __init__(self):
 		super(MainWindow, self).__init__()
 		self.move(300, 300)
-		self.setWindowTitle('Прогнозування розповсюдження полютантів')
+		self.setWindowTitle("Прогнозування розповсюдження полютантів")
 		
 		self.creatorWidget = None
 		
@@ -46,7 +88,7 @@ class MainWindow(QWidget):
 		
 		#Карта:
 		self.mainFlowMap = FlowMap((150, 20), (len(Map), len(Map[0])),
-			Map, PoisonMap, self, 10, 10, 50)
+			Map, PoisonMap, ShipsPositionMap, self, 10, 10, 50)
 		stepBtn.clicked.connect(self.mainFlowMap.step)
 		
 	def createMapWidgetSlot(self):
