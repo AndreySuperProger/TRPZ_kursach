@@ -35,14 +35,14 @@ class Area(QFrame):
 	
 	def paintEvent(self, event):
 		self.refreshColor()
+		height = self.frameRect().height()
+		width = self.frameRect().width()
+		
 		qp = QPainter()
 		qp.begin(self)
 		pen = QPen()
-		pen.setWidth(5)
+		pen.setWidth(height/10)
 		qp.setPen(pen)
-		
-		height = self.frameRect().height()
-		width = self.frameRect().width()
 		
 		if self.shipIsPresent:
 			qp.drawImage(self.frameRect(), QImage("images/ship.png"))
@@ -191,6 +191,7 @@ class FlowMap(QWidget):
 		areasWithShips = [(self.Map[i][j], i, j) for i in range(self.rows)
 			for j in range(self.cols) if self.Map[i][j].shipIsPresent]
 		#рассчитать куда поплывут корабли
+		#TODO: корабли не могут двигаться по воде
 		#TODO: хорошо бы инкапсулировать в отдельный класс
 		#TODO: обновить перед этим poisonedAreas
 		#TODO: добавить переменный радиус действия кораблей
@@ -213,7 +214,6 @@ class FlowMap(QWidget):
 					areaToGo[1] = 1
 				elif j > areaToFollow_j:
 					areaToGo[1] = -1
-				#areaToGo += [i, j]
 				areaToGo[0] += i
 				areaToGo[1] += j
 				

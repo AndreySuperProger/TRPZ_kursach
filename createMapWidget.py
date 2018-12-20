@@ -1,5 +1,4 @@
-from PyQt5.QtWidgets import QApplication, QWidget
-from PyQt5.QtWidgets import QPushButton, QLineEdit, QLabel
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QLabel, QDialog
 from PyQt5.QtGui import QIntValidator, QPainter, QColor, QFont, QPen
 from PyQt5.QtCore import Qt
 from flowMap import *
@@ -61,52 +60,60 @@ class AreasPanel(QWidget):
 		
 		self.show()
 
-#TODO: Реализовать возможность рисования не отпуская ЛКМ	
-#TODO: Диалог о параметрах карты
+#Диалог о параметрах карты
+class CreateMapDialog(QDialog):
+	def __init__(self, parent):
+		self.parentWidget = parent
+		super(CreateMapDialog, self).__init__(parent)
+		self.setGeometry(0, 0, 400, 300)
+		lbl1 = QLabel("Кількість рядків:", self)
+		lbl1.move(20, 20)
+		self.rowsEdit = self.addEdit(170, 20)
+		
+		lbl2 = QLabel("Кількість колонок:", self)
+		lbl2.move(20, 60)
+		self.colsEdit = self.addEdit(170, 60)
+		
+		lbl3 = QLabel("Розмір клітинок:", self)
+		lbl3.move(20, 100)
+		self.areaSizeEdit = self.addEdit(170, 100)
+		
+		lbl4 = QLabel("Інтервал:", self)
+		lbl4.move(20, 140)
+		self.intervalEdit = self.addEdit(170, 140)
+		
+		lbl5 = QLabel("Дистанція:", self)
+		lbl5.move(20, 180)
+		self.distanceEdit = self.addEdit(170, 180)
+		
+		lbl6 = QLabel("Радіус дії кораблів:", self)
+		lbl6.move(20, 220)
+		self.shipRadEdit = self.addEdit(170, 220)
+		
+		btn1 = QPushButton("ОК", self)
+		btn1.move(20, 260)
+		btn1.clicked.connect(self.parentWidget.createMapDialogOkBtnClickedSlot)
+		
+		self.show()
+		
+	#для создания Edit-ов
+	def addEdit(self, x, y):
+		editElement = QLineEdit(self)
+		editElement.setValidator(QIntValidator())
+		editElement.setMaxLength(2)
+		editElement.setAlignment(Qt.AlignRight)
+		editElement.setFont(QFont("Arial", 20))
+		editElement.move(x, y)
+		return editElement
+
+#TODO: Реализовать возможность рисования не отпуская ЛКМ
 class CreateMapWidget(QWidget):
-	def __init__(self, parentWidget):
+	def __init__(self, parentWidget, parentDialog = None):
 		super(CreateMapWidget, self).__init__()
 		#self.setGeometry(400, 400, 500, 600)
 		self.setWindowTitle('Створити карту')
 		self.areaPanelActivePict = None
 		self.parentWidget = parentWidget
-		
-		lbl1 = QLabel("Довжина:", self)
-		lbl1.move(20, 20)
-		
-		rowsEdit = QLineEdit(self)
-		rowsEdit.setValidator(QIntValidator())
-		rowsEdit.setMaxLength(2)
-		rowsEdit.setAlignment(Qt.AlignRight)
-		rowsEdit.setFont(QFont("Arial",20))
-		rowsEdit.move(150, 20)
-		self.rowsEdit = rowsEdit
-		
-		lbl2 = QLabel("Ширина:", self)
-		lbl2.move(20, 60)
-		
-		colsEdit = QLineEdit(self)
-		colsEdit.setValidator(QIntValidator())
-		colsEdit.setMaxLength(2)
-		colsEdit.setAlignment(Qt.AlignRight)
-		colsEdit.setFont(QFont("Arial", 20))
-		colsEdit.move(150, 60)
-		self.colsEdit = colsEdit
-		
-		lbl2 = QLabel("Радіус дії кораблів:", self)
-		lbl2.move(20, 100)
-		
-		shipRadEdit = QLineEdit(self)
-		shipRadEdit.setValidator(QIntValidator())
-		shipRadEdit.setMaxLength(2)
-		shipRadEdit.setAlignment(Qt.AlignRight)
-		shipRadEdit.setFont(QFont("Arial", 20))
-		shipRadEdit.move(150, 100)
-		self.shipRadEdit = shipRadEdit
-		
-		refreshMapBtn = QPushButton("Оновити карту", self)
-		refreshMapBtn.move(20, 150)
-		refreshMapBtn.clicked.connect(self.refreshMapSlot)
 		
 		okBtn = QPushButton("Ok", self)
 		okBtn.move(150, 150)
@@ -116,27 +123,49 @@ class CreateMapWidget(QWidget):
 		
 		self.flowMap = FlowMap((400, 20), (0, 0), [],
 			[], [], self, 0, 0, 0)
-		self.flowMap.copy(parentWidget.mainFlowMap)
+		if parentDialog:
+			self.createNewMap(parentDialog)
+		else:
+			self.flowMap.copy(parentWidget.mainFlowMap)
 		self.flowMap.bindClickedSignal(self)
-		
 		self.show()
 	
-	#TODO:оставить часть прошлой карты	
-	def refreshMapSlot(self):
+	#TODO:оставить часть прошлой карты
+	def createNewMap(self, parentDialog):
 		self.flowMap.hide()
 		del(self.flowMap)
-		rows = cols = 0
+		rows = cols = distance = interval = areaSize = 0
 		try:
-			rows = int(self.rowsEdit.text())
-			cols = int(self.colsEdit.text())
+			rows = int(parentDialog.rowsEdit.text())
+			print("rows = " + str(rows))
 		except:
-			rows = cols = 0
+			rows = 0
+		try:
+			cols = int(parentDialog.colsEdit.text())
+			print("cols = " + str(cols))
+		except:
+			cols = 0
+		try:
+			interval = int(parentDialog.intervalEdit.text())
+			print("interval = " + str(interval))
+		except:
+			interval = 0
+		try:
+			distance = int(parentDialog.distanceEdit.text())
+			print("distance = " + str(distance))
+		except:
+			distance = 0
+		try:
+			areaSize = int(parentDialog.areaSizeEdit.text())
+			print("areaSize = " + str(areaSize))
+		except:
+			areaSize = 50
 		self.flowMap = FlowMap((400, 20), (rows, cols),
 			[[0 for j in range(cols)] for i in range(rows)],
 			[[0 for j in range(cols)] for i in range(rows)],
-			self, 10, 10, 50)
+			[[0 for j in range(cols)] for i in range(rows)],
+			self, distance, interval, areaSize)
 		self.flowMap.show()
-		self.flowMap.bindClickedSignal(self)
 		self.hide()
 		self.show()
 		
