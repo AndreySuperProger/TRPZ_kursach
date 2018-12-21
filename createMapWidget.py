@@ -7,56 +7,6 @@ from flowMap import *
 class AreasPanel(QWidget):
 	def __init__(self, parentWidget):
 		super(AreasPanel, self).__init__(parentWidget)
-		#self.move(500, 500)
-		self.setGeometry(20, 190, 130, 360)
-		
-		landPict = Area(Land, False, False, self)
-		landPict.setGeometry(0, 0, 50, 50)
-		landPict.clicked.connect(parentWidget.areaPanelClickedSlot)
-		
-		noFlowPict = Area(NoFlow, False, False, self)
-		noFlowPict.setGeometry(0, 60, 50, 50)
-		noFlowPict.clicked.connect(parentWidget.areaPanelClickedSlot)
-		
-		northPict = Area(North, False, False, self)
-		northPict.setGeometry(0, 120, 50, 50)
-		northPict.clicked.connect(parentWidget.areaPanelClickedSlot)
-		
-		northernEastPict = Area(NorthernEast, False, False, self)
-		northernEastPict.setGeometry(0, 180, 50, 50)
-		northernEastPict.clicked.connect(parentWidget.areaPanelClickedSlot)
-		
-		eastPict = Area(East, False, False, self)
-		eastPict.setGeometry(0, 240, 50, 50)
-		eastPict.clicked.connect(parentWidget.areaPanelClickedSlot)
-		
-		southernEastPict = Area(SouthernEast, False, False, self)
-		southernEastPict.setGeometry(60, 0, 50, 50)
-		southernEastPict.clicked.connect(parentWidget.areaPanelClickedSlot)
-		
-		southPict = Area(South, False, False, self)
-		southPict.setGeometry(60, 60, 50, 50)
-		southPict.clicked.connect(parentWidget.areaPanelClickedSlot)
-		
-		southernWestPict = Area(SouthernWest, False, False, self)
-		southernWestPict.setGeometry(60, 120, 50, 50)
-		southernWestPict.clicked.connect(parentWidget.areaPanelClickedSlot)
-		
-		westPict = Area(West, False, False, self)
-		westPict.setGeometry(60, 180, 50, 50)
-		westPict.clicked.connect(parentWidget.areaPanelClickedSlot)
-		
-		northernWestPict = Area(NorthernWest, False, False, self)
-		northernWestPict.setGeometry(60, 240, 50, 50)
-		northernWestPict.clicked.connect(parentWidget.areaPanelClickedSlot)
-		
-		poisonPict = Area(NoFlow, True, False, self)
-		poisonPict.setGeometry(0, 300, 50, 50)
-		poisonPict.clicked.connect(parentWidget.areaPanelClickedSlot)
-		
-		poisonPict = Area(NoFlow, False, True, self)
-		poisonPict.setGeometry(60, 300, 50, 50)
-		poisonPict.clicked.connect(parentWidget.areaPanelClickedSlot)
 		
 		self.show()
 
@@ -119,22 +69,19 @@ class CreateMapWidget(QWidget):
 		okBtn.move(150, 150)
 		okBtn.clicked.connect(parentWidget.creatorWidgetOkBtnSlot)
 		
-		areasPanel = AreasPanel(self)
-		
-		self.flowMap = FlowMap((400, 20), (0, 0), [],
-			[], [], self, 0, 0, 0)
+		self.flowGrid = None
 		if parentDialog:
 			self.createNewMap(parentDialog)
 		else:
-			self.flowMap.copy(parentWidget.mainFlowMap)
-		self.flowMap.bindClickedSignal(self)
+			pass
+			#self.flowGrid.copy(parentWidget.mainFlowMap)
 		self.show()
 	
 	#TODO:оставить часть прошлой карты
 	def createNewMap(self, parentDialog):
-		self.flowMap.hide()
-		del(self.flowMap)
-		rows = cols = distance = interval = areaSize = 0
+		self.flowGrid.hide()
+		del(self.flowGrid)
+		rows = cols = areaSize = 0
 		try:
 			rows = int(parentDialog.rowsEdit.text())
 			print("rows = " + str(rows))
@@ -146,25 +93,11 @@ class CreateMapWidget(QWidget):
 		except:
 			cols = 0
 		try:
-			interval = int(parentDialog.intervalEdit.text())
-			print("interval = " + str(interval))
-		except:
-			interval = 0
-		try:
-			distance = int(parentDialog.distanceEdit.text())
-			print("distance = " + str(distance))
-		except:
-			distance = 0
-		try:
 			areaSize = int(parentDialog.areaSizeEdit.text())
 			print("areaSize = " + str(areaSize))
 		except:
-			areaSize = 50
-		self.flowMap = FlowMap((400, 20), (rows, cols),
-			[[0 for j in range(cols)] for i in range(rows)],
-			[[0 for j in range(cols)] for i in range(rows)],
-			[[0 for j in range(cols)] for i in range(rows)],
-			self, distance, interval, areaSize)
+			areaSize = 20
+		self.flowGrid = Grid(self, [[(0, 0) for j in range(cols)] for i in range(raws)])
 		self.flowMap.show()
 		self.hide()
 		self.show()

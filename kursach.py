@@ -1,75 +1,9 @@
-from flowMap import *
-from createMapWidget import *
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt5.QtWidgets import QApplication, QWidget, QFrame
 from PyQt5.QtWidgets import QPushButton, QLineEdit, QLabel
-from PyQt5.QtGui import QIntValidator
-
-
-'''Map = [[NoFlow, NoFlow, NoFlow, Land, Land],
-	[NoFlow, West, West, NorthernWest, Land],
-	[NoFlow, West, West, NorthernWest, Land],
-	[NoFlow, West, West, NorthernWest, Land],
-	[NoFlow, West, West, NorthernWest, Land]]
-	
-PoisonMap = [
-	[0, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0]]
-	
-ShipsPositionMap = [
-	[1, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0]]'''
-	
-'''Map = [
-	[NoFlow, NoFlow, NoFlow],
-	[NoFlow, NoFlow, NoFlow],
-	[NoFlow, NoFlow, NoFlow]]
-	
-PoisonMap = [
-	[1, 1, 1],
-	[1, 1, 1],
-	[1, 1, 1]]
-	
-ShipsPositionMap = [
-	[0, 0, 0],
-	[0, 1, 0],
-	[0, 0, 0]]'''
-	
-Map = [
-	[NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow],
-	[NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow],
-	[NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow],
-	[NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow],
-	[NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow],
-	[NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow],
-	[NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow],
-	[NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow, NoFlow]]
-	
-PoisonMap = [
-	[1, 1, 1, 1, 1, 1, 1, 1],
-	[1, 1, 1, 1, 1, 1, 1, 1],
-	[1, 1, 1, 1, 1, 1, 1, 1],
-	[1, 1, 1, 1, 1, 1, 1, 1],
-	[1, 1, 1, 1, 1, 1, 1, 1],
-	[1, 1, 1, 1, 1, 1, 1, 1],
-	[1, 1, 1, 1, 1, 1, 1, 1],
-	[1, 1, 1, 1, 1, 1, 1, 1]]
-	
-ShipsPositionMap = [
-	[0, 0, 0, 0, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0, 0, 0, 0],
-	[0, 0, 0, 1, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0, 0, 0, 0],
-	[0, 0, 0, 0, 0, 0, 0, 0]]
+from PyQt5.QtGui import QIntValidator, QPainter, QPen
+from PyQt5.QtCore import Qt, QPoint
+from maps import *
 
 class MainWindow(QWidget):
 	def __init__(self):
@@ -77,48 +11,90 @@ class MainWindow(QWidget):
 		self.move(300, 300)
 		self.setWindowTitle("Прогнозування розповсюдження полютантів")
 		
-		self.creatorWidget = None
-		self.createMapDialog = None
+		board = Board(self)
 		
 		stepBtn = QPushButton("Крок", self)
-		stepBtn.move(20, 20)
+		stepBtn.move(520, 50)
+		stepBtn.clicked.connect(board.stepBtnSlot)
 		
-		createMapBtn = QPushButton("Створити нову карту", self)
-		createMapBtn.move(20, 50)
-		createMapBtn.clicked.connect(self.createMapWidgetSlot)
-		
-		editMapBtn = QPushButton("Редагувати карту", self)
-		editMapBtn.move(20, 80)
-		editMapBtn.clicked.connect(self.editMapWidgetSlot)
-		
-		#Карта:
-		self.mainFlowMap = FlowMap((180, 20), (len(Map), len(Map[0])),
-			Map, PoisonMap, ShipsPositionMap, self, 10, 10, 50)
-		stepBtn.clicked.connect(self.mainFlowMap.step)
-		
-	#слот для кнопки "Створити карту"
-	def createMapWidgetSlot(self):
-		self.createMapDialog = CreateMapDialog(self)
-		self.hide()
-		
-	#слот для кнопки "Редагувати карту"
-	def editMapWidgetSlot(self):
-		self.creatorWidget = CreateMapWidget(self)
-		self.hide()
-		
-	#Слот для кнопки "Ок" в creatorWidget
-	def creatorWidgetOkBtnSlot(self):
-		self.mainFlowMap.copy(self.creatorWidget.flowMap)
-		self.creatorWidget.close()
-		del(self.creatorWidget)
 		self.show()
 		
-	#Слот для кнопки "Ок" в createMapDialog
-	def createMapDialogOkBtnClickedSlot(self):
-		self.creatorWidget = CreateMapWidget(self, self.createMapDialog)
-		self.createMapDialog.close()
-		del(self.createMapDialog)
+class Board(QWidget):
+	def __init__(self, parent):
+		super(Board, self).__init__(parent)
+		self.setGeometry(10, 10, 500, 500)
+		
+		self.setAutoFillBackground(True)
+		p = self.palette()
+		p.setColor(self.backgroundRole(), Qt.white)
+		self.setPalette(p)
+		
+		self.grid = Grid(self, testMap1)
+		
+		self.particle = Particle(self, 10, 10, 4)
+		
+		self.show()
+		
+	#TODO: для каждой частицы
+	def stepBtnSlot(self):
+		x = self.particle.x()
+		y = self.particle.y()
+		i = int(x/20)
+		j = int(y/20)
+		dx = self.grid.cellMrx[i][j].vector.x()
+		dy = self.grid.cellMrx[i][j].vector.y()
+		#TODO: учесть соседние вектора
+		self.particle.move(x + dx, y + dy)
+		
+class Grid(QWidget):
+	def __init__(self, parent, flowMap):
+		super(Grid, self).__init__(parent)
+		rows = len(flowMap)
+		cols = len(flowMap[0])
+		self.cellMrx = [[None for j in range(cols)] for i in range(rows)]
+		for i in range(rows):
+			for j in range(cols):
+				x = flowMap[i][j][0]
+				y = flowMap[i][j][1]
+				self.cellMrx[i][j] = GridCell(self, j*20, i*20, QPoint(x, y))
+		
+class GridCell(QFrame):
+	def __init__(self, parent, x, y, vector):
+		super(GridCell, self).__init__(parent)
+		self.setGeometry(x - 10, y - 10, 20, 20)
+		self.vector = vector
 	
+	def paintEvent(self, event):
+		qp = QPainter()
+		qp.begin(self)
+		pen = QPen()
+		pen.setWidth(1)
+		qp.setPen(pen)
+		qp.setBrush(Qt.red)
+		
+		qp.drawEllipse(QPoint(10, 10), 1, 1)
+		
+		qp.drawLine(QPoint(10, 10), QPoint(10 + self.vector.x(), 10 + self.vector.y()))
+		
+		
+#частица пятна
+class Particle(QFrame):
+	def __init__(self, parent, x, y, rad):
+		super(Particle, self).__init__(parent)
+		self.rad = rad
+		self.setGeometry(x, y, 2*rad, 2*rad)
+		self.show()
+		
+	def paintEvent(self, event):
+		qp = QPainter()
+		qp.begin(self)
+		pen = QPen()
+		pen.setWidth(1)
+		qp.setPen(pen)
+		qp.setBrush(Qt.black)
+		
+		qp.drawEllipse(QPoint(self.rad, self.rad), self.rad - 1, self.rad - 1)
+			
 
 if __name__ == '__main__':
 	app = QApplication(sys.argv)
