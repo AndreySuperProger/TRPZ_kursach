@@ -2,7 +2,36 @@ import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QFrame
 from PyQt5.QtWidgets import QPushButton, QLineEdit, QLabel
 from PyQt5.QtGui import QIntValidator, QPainter, QPen
-from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtCore import Qt, QPoint, QRect
+
+def findMinX(array):
+		x = 1000
+		for item in array:
+			if (item.x() < x):
+				x = item.x()
+		return x
+		
+def findMaxX(array):
+	x = 0
+	for item in array:
+		if (item.x() > x):
+			x = item.x()
+	return x
+	
+def findMinY(array):
+	y = 1000
+	for item in array:
+		if (item.y() < y):
+			y = item.y()
+	return y
+	
+def findMaxY(array):
+	y = 0
+	for item in array:
+		if (item.y() > y):
+			y = item.y()
+	return y
+
 
 class Board(QWidget):
 	def __init__(self, parent, flowMap, areaSize):
@@ -20,6 +49,15 @@ class Board(QWidget):
 		self.grid = Grid(self, flowMap, areaSize)
 		
 		self.particle = Particle(self, 10, 10, 4)
+		
+		self.clicked = False
+		self.mouse_x1 = 0
+		self.mouse_y1 = 0
+		self.editFlowPermited = False
+		
+		self.polygonVertices = []
+		self.polygonLines = []
+		self.drawPoisonedAreaPermitted = False
 		
 		self.show()
 		
@@ -40,6 +78,143 @@ class Board(QWidget):
 		dy = self.grid.cellMrx[i][j].vector.y()
 		#TODO: учесть соседние вектора
 		self.particle.move(x + dx, y + dy)
+		
+	def mousePressEvent(self, QMouseEvent):
+		if (self.editFlowPermited):
+			force = 10
+			width = 5
+			eps0 = 2
+			eps = 16
+			if self.clicked:
+				x1 = self.mouse_x1
+				y1 = self.mouse_y1
+				x2 = QMouseEvent.x()
+				y2 = QMouseEvent.y()
+				
+				length = ((x2 - x1)**2 + (y2 - y1)**2)**(0.5)
+				vector = ((x2 - x1)/length*force, (y2 - y1)/length*force)
+				areaSize = self.grid.areaSize
+				
+				#TODO: исправить этот дерьмокод
+				#TODO: добавить try блоки
+				#Ниже от y1
+				for k in range(width):
+					point = [x1, y1+k*areaSize/eps0]
+					if (x2 > x1 and y2 > y1):
+						while point[0] <= x2 and point[1] <= y2:
+							i = int(point[1]/self.grid.areaSize)
+							j = int(point[0]/self.grid.areaSize)
+							cell = self.grid.cellMrx[i][j]
+							cell.vector = QPoint(vector[0], vector[1])
+							self.grid.flowMap[i][j] = (vector[0], vector[1])
+							cell.update()
+							point[0] += vector[0]*areaSize/eps
+							point[1] += vector[1]*areaSize/eps
+					elif (x2 <= x1 and y2 > y1):
+						while point[0] >= x2 and point[1] <= y2:
+							i = int(point[1]/self.grid.areaSize)
+							j = int(point[0]/self.grid.areaSize)
+							cell = self.grid.cellMrx[i][j]
+							cell.vector = QPoint(vector[0], vector[1])
+							self.grid.flowMap[i][j] = (vector[0], vector[1])
+							cell.update()
+							point[0] += vector[0]*areaSize/eps
+							point[1] += vector[1]*areaSize/eps
+					elif (x2 > x1 and y2 <= y1):
+						while point[0] <= x2 and point[1] >= y2:
+							i = int(point[1]/self.grid.areaSize)
+							j = int(point[0]/self.grid.areaSize)
+							cell = self.grid.cellMrx[i][j]
+							cell.vector = QPoint(vector[0], vector[1])
+							self.grid.flowMap[i][j] = (vector[0], vector[1])
+							cell.update()
+							point[0] += vector[0]*areaSize/eps
+							point[1] += vector[1]*areaSize/eps
+					elif (x2 <= x1 and y2 <= y1):
+						while point[0] >= x2 and point[1] >= y2:
+							i = int(point[1]/self.grid.areaSize)
+							j = int(point[0]/self.grid.areaSize)
+							cell = self.grid.cellMrx[i][j]
+							cell.vector = QPoint(vector[0], vector[1])
+							self.grid.flowMap[i][j] = (vector[0], vector[1])
+							cell.update()
+							point[0] += vector[0]*areaSize/eps
+							point[1] += vector[1]*areaSize/eps
+				#Выше от y1
+				for k in range(width):
+					point = [x1, y1-k*areaSize/eps0]
+					if (x2 > x1 and y2 > y1):
+						while point[0] <= x2 and point[1] <= y2:
+							i = int(point[1]/self.grid.areaSize)
+							j = int(point[0]/self.grid.areaSize)
+							cell = self.grid.cellMrx[i][j]
+							cell.vector = QPoint(vector[0], vector[1])
+							self.grid.flowMap[i][j] = (vector[0], vector[1])
+							cell.update()
+							point[0] += vector[0]*areaSize/eps
+							point[1] += vector[1]*areaSize/eps
+					elif (x2 <= x1 and y2 > y1):
+						while point[0] >= x2 and point[1] <= y2:
+							i = int(point[1]/self.grid.areaSize)
+							j = int(point[0]/self.grid.areaSize)
+							cell = self.grid.cellMrx[i][j]
+							cell.vector = QPoint(vector[0], vector[1])
+							self.grid.flowMap[i][j] = (vector[0], vector[1])
+							cell.update()
+							point[0] += vector[0]*areaSize/eps
+							point[1] += vector[1]*areaSize/eps
+					elif (x2 > x1 and y2 <= y1):
+						while point[0] <= x2 and point[1] >= y2:
+							i = int(point[1]/self.grid.areaSize)
+							j = int(point[0]/self.grid.areaSize)
+							cell = self.grid.cellMrx[i][j]
+							cell.vector = QPoint(vector[0], vector[1])
+							self.grid.flowMap[i][j] = (vector[0], vector[1])
+							cell.update()
+							point[0] += vector[0]*areaSize/eps
+							point[1] += vector[1]*areaSize/eps
+					elif (x2 <= x1 and y2 <= y1):
+						while point[0] >= x2 and point[1] >= y2:
+							i = int(point[1]/self.grid.areaSize)
+							j = int(point[0]/self.grid.areaSize)
+							cell = self.grid.cellMrx[i][j]
+							cell.vector = QPoint(vector[0], vector[1])
+							self.grid.flowMap[i][j] = (vector[0], vector[1])
+							cell.update()
+							point[0] += vector[0]*areaSize/eps
+							point[1] += vector[1]*areaSize/eps	
+				self.clicked = False
+			else:
+				self.mouse_x1 = QMouseEvent.x()
+				self.mouse_y1 = QMouseEvent.y()
+				self.clicked = True
+				
+		elif(self.drawPoisonedAreaPermitted):
+			if (len(self.polygonVertices) > 0):
+				x1 = QMouseEvent.x()
+				y1 = QMouseEvent.y()
+				x2 = self.polygonVertices[0].x()
+				y2 = self.polygonVertices[0].y()
+				#если полигон нарисован:
+				if (abs(x2 - x1) < 5 and abs(y2 - y1) < 5):
+					x01 = findMinX([QPoint(x1, y1), QPoint(x2, y2)])
+					y01 = findMinY([QPoint(x1, y1), QPoint(x2, y2)])
+					x02 = findMaxX([QPoint(x1, y1), QPoint(x2, y2)])
+					y02 = findMaxY([QPoint(x1, y1), QPoint(x2, y2)])
+					line = Line(self, QRect(QPoint(x01, y01), QPoint(x02, y02)),
+						QPoint(x1, y1), QPoint(x2, y2))
+					self.polygonLines.append(line)
+			self.polygonVertices.append(QMouseEvent.pos())
+			if (len(self.polygonVertices) > 1):
+				p0 = self.polygonVertices[-1]
+				p1 = self.polygonVertices[-2]
+				x0 = findMinX([p0, p1])
+				y0 = findMinY([p0, p1])
+				x1 = findMaxX([p0, p1])
+				y1 = findMaxY([p0, p1])
+				line = Line(self, QRect(QPoint(x0, y0), QPoint(x1, y1)),
+					p0, p1)
+				self.polygonLines.append(line)
 		
 class Grid(QWidget):
 	def __init__(self, parent, flowMap, areaSize):
@@ -118,3 +293,40 @@ class Particle(QFrame):
 		qp.setBrush(Qt.black)
 		
 		qp.drawEllipse(QPoint(self.rad, self.rad), self.rad - 1, self.rad - 1)
+		
+class Line(QFrame):
+	def __init__(self, parent, rect, p1, p2):
+		super(Line, self).__init__(parent)
+		self.p1 = p1 - rect.topLeft()
+		self.p2 = p2 - rect.topLeft()
+		self.setGeometry(rect)
+		self.show()
+		
+	def paintEvent(self, event):
+		qp = QPainter()
+		qp.begin(self)
+		pen = QPen()
+		pen.setWidth(3)
+		qp.setPen(pen)
+		
+		qp.drawLine(self.p1, self.p2)
+		
+class Polygon(QFrame):
+	def __init__(self, parent, rect, vertices):
+		super(Polygon, self).__init__(parent)
+		self.vertices = vertices
+		for item in self.vertices:
+			item -= rect.topLeft()
+		self.setGeometry(rect)
+		self.show()
+		
+	def paintEvent(self, event):
+		qp = QPainter()
+		qp.begin(self)
+		pen = QPen()
+		pen.setWidth(1)
+		qp.setPen(pen)
+		
+		for i in range(len(self.vertices) - 1):
+			qp.drawLine(self.vertices[i], self.vertices[i + 1])
+		qp.drawLine(self.vertices[-1], self.vertices[0])

@@ -40,9 +40,9 @@ class CreateMapDialog(QDialog):
 		lbl6.move(20, 220)
 		self.shipRadEdit = self.addEdit(170, 220)
 		
-		btn1 = QPushButton("ОК", self)
-		btn1.move(20, 260)
-		btn1.clicked.connect(self.okBtnSlot)
+		okBtn = QPushButton("ОК", self)
+		okBtn.move(20, 260)
+		okBtn.clicked.connect(self.okBtnSlot)
 		
 		self.show()
 		
@@ -72,6 +72,8 @@ class CreateMapWidget(QWidget):
 		self.parentWidget = parentWidget
 		
 		self.okBtn = QPushButton("Ok", self)
+		createFlowBtn = QPushButton("Задати напрям течії", self)
+		addParticlesBtn = QPushButton("Задати область забруднення", self)
 		
 		self.board = Board(self, [[(0, 0)]], 20)
 		if parentDialog:
@@ -84,6 +86,12 @@ class CreateMapWidget(QWidget):
 		
 		self.okBtn.move(15 + boardWidth, 50)
 		self.okBtn.clicked.connect(self.okBtnSlot)
+		
+		createFlowBtn.move(15 + boardWidth, 80)
+		createFlowBtn.clicked.connect(self.createFlowBtnSlot)
+		
+		addParticlesBtn.move(15 + boardWidth, 110)
+		addParticlesBtn.clicked.connect(self.addParticlesBtnSlot)
 		
 		self.show()
 	
@@ -126,6 +134,14 @@ class CreateMapWidget(QWidget):
 		self.parentWidget.createMapBtn.move(15 + boardWidth, 110)
 		self.parentWidget.show()
 		del(self)
+		
+	def createFlowBtnSlot(self):
+		self.board.editFlowPermited = True
+		self.board.drawPoisonedAreaPermitted = False
+		
+	def addParticlesBtnSlot(self):
+		self.board.drawPoisonedAreaPermitted = True
+		self.board.editFlowPermited = False
 		
 	#слот для обработки кликов на панели пиктограм
 	def areaPanelClickedSlot(self):

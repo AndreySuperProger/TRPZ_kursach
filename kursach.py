@@ -13,7 +13,7 @@ class MainWindow(QWidget):
 		self.move(300, 300)
 		self.setWindowTitle("Прогнозування розповсюдження полютантів")
 		
-		self.board = Board(self, testMap1, 20)
+		self.board = Board(self, testMap2, 20)
 		boardWidth = self.board.width()
 		boardHeight = self.board.height()
 		
