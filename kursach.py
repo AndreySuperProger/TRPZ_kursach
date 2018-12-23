@@ -34,7 +34,6 @@ class MainWindow(QWidget):
 	def flowMapEditBtnSlot(self):
 		self.createMapWidget = CreateMapWidget(self)
 		self.hide()
-		print(self.board.grid.flowMap)
 		
 	def createMapBtnSlot(self):
 		self.createMapDialog = CreateMapDialog(self)
