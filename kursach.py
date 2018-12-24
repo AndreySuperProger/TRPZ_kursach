@@ -14,19 +14,21 @@ class MainWindow(QWidget):
 		self.setWindowTitle("Прогнозування розповсюдження полютантів")
 		
 		self.board = Board(self, testMap2, 20)
-		boardWidth = self.board.width()
-		boardHeight = self.board.height()
 		
 		self.stepBtn = QPushButton("Крок", self)
-		self.stepBtn.move(15 + boardWidth, 50)
+		self.stepBtn.move(15, 20)
 		self.stepBtn.clicked.connect(self.board.stepBtnSlot)
 		
+		self.step100Btn = QPushButton("100 кроків", self)
+		self.step100Btn.move(15, 50)
+		self.step100Btn.clicked.connect(self.board.step100BtnSlot)
+		
 		self.flowMapEditBtn = QPushButton("Редагувати карту", self)
-		self.flowMapEditBtn.move(15 + boardWidth, 80)
+		self.flowMapEditBtn.move(15, 80)
 		self.flowMapEditBtn.clicked.connect(self.flowMapEditBtnSlot)
 		
 		self.createMapBtn = QPushButton("Створити нову карту", self)
-		self.createMapBtn.move(15 + boardWidth, 110)
+		self.createMapBtn.move(15, 110)
 		self.createMapBtn.clicked.connect(self.createMapBtnSlot)
 		
 		self.show()

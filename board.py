@@ -1,11 +1,13 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QFrame
 from PyQt5.QtWidgets import QPushButton, QLineEdit, QLabel
-from PyQt5.QtGui import QIntValidator, QPainter, QPen, QImage
+from PyQt5.QtGui import QIntValidator, QPainter, QPen, QImage, QColor, QPolygon
 from PyQt5.QtCore import Qt, QPoint, QRect
 from shapely.geometry import Point as ShapelyPoint
 from shapely.geometry.polygon import Polygon as ShapelyPolygon
 import random
+import time
+import math
 
 def findMinX(array):
 		x = 1000
@@ -47,7 +49,7 @@ class Board(QWidget):
 		rows = len(flowMap)
 		cols = len(flowMap[0])
 		
-		self.setGeometry(10, 10, cols*areaSize, rows*areaSize)
+		self.setGeometry(300, 10, cols*areaSize, rows*areaSize)
 		
 		self.setAutoFillBackground(True)
 		p = self.palette()
@@ -58,7 +60,9 @@ class Board(QWidget):
 		
 		self.particles = []
 		
-		self.ships = [Ship(self, 100, 100, 100, 10)]
+		self.ships = []
+		
+		self.lands = []
 		
 		self.clicked = False
 		self.mouse_x1 = 0
@@ -67,7 +71,10 @@ class Board(QWidget):
 		
 		self.polygonVertices = []
 		self.polygonLines = []
-		self.drawPoisonedAreaPermitted = False
+		self.drawPoisonedAreaPermited = False
+		
+		self.addShipPermited = False
+		self.addLandPermited = False
 		
 		self.show()
 		
@@ -79,10 +86,19 @@ class Board(QWidget):
 		for particleToCopy in boardToCopy.particles:
 			self.particles.append(Particle(self, particleToCopy.x,
 				particleToCopy.y, particleToCopy.rad))
+		for shipToCopy in boardToCopy.ships:
+			x = shipToCopy.x
+			y = shipToCopy.y
+			rad = shipToCopy.cleanRadius
+			vel = shipToCopy.velocity
+			self.ships.append(Ship(self, x, y, rad, vel))
+		for landToCopy in boardToCopy.lands:
+			vertices = landToCopy.vertices
+			self.lands.append(Land(self, vertices))
 		rows = self.grid.rows
 		cols = self.grid.cols
 		areaSize = self.grid.areaSize
-		self.setGeometry(10, 10, cols*areaSize, rows*areaSize)
+		self.setGeometry(300, 10, cols*areaSize, rows*areaSize)
 		
 	def stepBtnSlot(self):
 		#движение частиц
@@ -91,24 +107,42 @@ class Board(QWidget):
 			y = particle.y
 			i = int(y/self.grid.areaSize)
 			j = int(x/self.grid.areaSize)
-			dx = self.grid.cellMrx[i][j].vector.x()
-			dy = self.grid.cellMrx[i][j].vector.y()
+			#Рассчет поправок:
+			k = particle.rad
+			dx = dy = 0
+			try:
+				dx = self.grid.cellMrx[i][j].vector.x()/k
+				dy = self.grid.cellMrx[i][j].vector.y()/k
+			except:
+				pass
 			#TODO: учесть соседние вектора(может быть)
 			particle.move(x - particle.rad + dx, y - particle.rad + dy)
 			particle.x += dx
 			particle.y += dy
+			#Поподание частиц на землю:
+			#TODO: посчитать к-ство
+			point = QPoint(particle.x, particle.y)
+			for land in self.lands:
+				if checkIfPointInsidePolygon(point, land.vertices):
+					particle.hide()
+					self.particles.remove(particle)
 			
 		#движение кораблей и очищение воды
 		for ship in self.ships:
 			if self.particles:
 				particleToFollow = min([particle for particle in self.particles],
-					key = lambda item:(ship.x - item.x) + (ship.y - item.y))
+					key = lambda item:(ship.x - item.x)**2 + (ship.y - item.y)**2)
 				dx = particleToFollow.x - ship.x
 				dy = particleToFollow.y - ship.y
 				l = (dx**2 + dy**2)**0.5
 				dx *= ship.velocity/l
 				dy *= ship.velocity/l
-				ship.move(ship.x + dx, ship.y + dy)
+				#Проверить не упрется ли корабль в землю
+				for land in self.lands:
+					if checkIfPointInsidePolygon(
+						QPoint(ship.x + dx, ship.y + dy), land.vertices):
+						dx = dy = 0
+				ship.move(ship.x + dx - 20, ship.y + dy - 20)
 				ship.x += dx
 				ship.y += dy
 				
@@ -120,6 +154,12 @@ class Board(QWidget):
 				if ((x2 - x1)**2 + (y2 - y1)**2)**0.5 <= ship.cleanRadius:
 					self.particles[i].hide()
 					del(self.particles[i])
+					
+	def step100BtnSlot(self):
+		for i in range(100):
+			time.sleep(.04)
+			self.stepBtnSlot()
+			self.repaint()
 		
 	def mousePressEvent(self, QMouseEvent):
 		if self.editFlowPermited:
@@ -134,14 +174,14 @@ class Board(QWidget):
 				y2 = QMouseEvent.y()
 				
 				length = ((x2 - x1)**2 + (y2 - y1)**2)**(0.5)
+				vector = 0
 				try:
 					vector = ((x2 - x1)/length*force, (y2 - y1)/length*force)
-				except e:
+				except:
 					pass
 				areaSize = self.grid.areaSize
 				
 				#TODO: исправить этот дерьмокод
-				#TODO: добавить try блоки
 				#Ниже от y1
 				for k in range(width):
 					point = [x1, y1+k*areaSize/eps0]
@@ -156,7 +196,7 @@ class Board(QWidget):
 								cell.update()
 								point[0] += vector[0]*areaSize/eps
 								point[1] += vector[1]*areaSize/eps
-							except e:
+							except:
 								pass
 					elif (x2 <= x1 and y2 > y1):
 						while point[0] >= x2 and point[1] <= y2:
@@ -169,7 +209,7 @@ class Board(QWidget):
 								cell.update()
 								point[0] += vector[0]*areaSize/eps
 								point[1] += vector[1]*areaSize/eps
-							except e:
+							except:
 								pass
 					elif (x2 > x1 and y2 <= y1):
 						while point[0] <= x2 and point[1] >= y2:
@@ -182,7 +222,7 @@ class Board(QWidget):
 								cell.update()
 								point[0] += vector[0]*areaSize/eps
 								point[1] += vector[1]*areaSize/eps
-							except e:
+							except:
 								pass
 					elif (x2 <= x1 and y2 <= y1):
 						while point[0] >= x2 and point[1] >= y2:
@@ -258,7 +298,7 @@ class Board(QWidget):
 				self.mouse_y1 = QMouseEvent.y()
 				self.clicked = True
 				
-		elif self.drawPoisonedAreaPermitted:
+		elif self.drawPoisonedAreaPermited:
 			self.polygonVertices.append(QMouseEvent.pos())
 			if (len(self.polygonVertices) > 1):
 				p0 = self.polygonVertices[0]
@@ -284,6 +324,36 @@ class Board(QWidget):
 				if polygonLocked:
 					self.removeLines()
 				
+		elif self.addShipPermited:
+			x = QMouseEvent.x()
+			y = QMouseEvent.y()
+			velocity = 10
+			rad = 20
+			self.ships.append(Ship(self, x, y, rad, velocity))
+		
+		elif self.addLandPermited:
+			self.polygonVertices.append(QMouseEvent.pos())
+			if (len(self.polygonVertices) > 1):
+				p0 = self.polygonVertices[0]
+				p1 = self.polygonVertices[-2]
+				p2 = self.polygonVertices[-1]
+				polygonLocked = abs(p0.x() - p2.x()) <= 5 and abs(p0.y() - p2.y()) <= 5
+				if polygonLocked:
+					p2 = p0
+					try:
+						self.lands.append(Land(self, self.polygonVertices))
+					except:
+						pass
+				x0 = findMinX([p1, p2])
+				y0 = findMinY([p1, p2])
+				x1 = findMaxX([p1, p2])
+				y1 = findMaxY([p1, p2])
+				line = Line(self, QRect(QPoint(x0, y0), QPoint(x1, y1)),
+					p1, p2)
+				self.polygonLines.append(line)
+				if polygonLocked:
+					self.removeLines()
+		
 	def generateRandomParticles(self, amount, maxSize):
 		x0 = findMinX(self.polygonVertices)
 		y0 = findMinY(self.polygonVertices)
@@ -298,7 +368,7 @@ class Board(QWidget):
 				and size <= maxSize:
 				self.particles.append(Particle(self, x, y, size))
 				amount -= 1
-				
+		
 	def removeLines(self):
 		for i in range(len(self.polygonLines) - 1, -1, -1):
 			self.polygonLines[i].hide()
@@ -320,6 +390,7 @@ class Grid(QWidget):
 				x = flowMap[i][j][0]
 				y = flowMap[i][j][1]
 				self.cellMrx[i][j] = GridCell(self, j, i, areaSize, QPoint(x, y))
+		self.setGeometry(0, 0, cols*areaSize, rows*areaSize)
 				
 	def copy(self, gridToCopy):
 		del(self.flowMap)
@@ -349,8 +420,11 @@ class Grid(QWidget):
 class GridCell(QFrame):
 	def __init__(self, parent, j, i, areaSize, vector):
 		super(GridCell, self).__init__(parent)
-		self.setGeometry(j*areaSize - 10, i*areaSize - 10, areaSize, areaSize)
+		self.setGeometry(j*areaSize, i*areaSize, areaSize, areaSize)
+		self.areaSize = areaSize
 		self.vector = vector
+		#self.arrow = Arrow(self, 10, areaSize)
+		self.show()
 	
 	def paintEvent(self, event):
 		qp = QPainter()
@@ -360,9 +434,43 @@ class GridCell(QFrame):
 		qp.setPen(pen)
 		qp.setBrush(Qt.red)
 		
-		qp.drawEllipse(QPoint(10, 10), 1, 1)
+		l = self.areaSize/2
+		qp.drawEllipse(QPoint(l, l), 1, 1)
+		x = self.vector.x()
+		y = self.vector.y()
+		vectorLength = (x**2 + y**2)**0.5
+		if vectorLength != 0:
+			qp.drawEllipse(QPoint(l, l), 1, 1)
+			qp.translate(QPoint(l, l))
+			if y > 0:
+				qp.rotate(-math.atan(x/y)/math.pi * 180)
+			elif y < 0:
+				qp.rotate(180 - math.atan(x/y)/math.pi * 180)
+			elif y == 0:
+				if x > 0:
+					qp.rotate(-90)
+				else:
+					qp.rotate(90)
+			qp.drawLine(QPoint(0, 0), QPoint(0, vectorLength))
+			qp.drawLine(QPoint(0, vectorLength), QPoint(-3, vectorLength -3))
+			qp.drawLine(QPoint(0, vectorLength), QPoint(3, vectorLength -3))
 		
-		qp.drawLine(QPoint(10, 10), QPoint(10 + self.vector.x(), 10 + self.vector.y()))
+class Arrow(QFrame):
+	def __init__(self, parent, length, areaSize):
+		super(Arrow, self).__init__(parent)
+		self.setGeometry(0, 0, length, areaSize)
+		self.length = length
+		self.areaSize = areaSize
+		self.show()
+	
+	def paintEvent(self, event):
+		qp = QPainter()
+		qp.begin(self)
+		pen = QPen()
+		pen.setWidth(1)
+		qp.setPen(pen)
+		
+		qp.drawLine(QPoint(self.areaSize/2, self.areaSize/2), QPoint(0, self.length))
 		
 		
 #частица пятна
@@ -393,6 +501,7 @@ class Ship(QFrame):
 		self.y = y
 		self.cleanRadius = rad
 		self.velocity = vel
+		self.show()
 		
 	def paintEvent(self, event):
 		qp = QPainter()
@@ -401,6 +510,12 @@ class Ship(QFrame):
 		pen.setWidth(1)
 		qp.setPen(pen)
 		qp.drawImage(self.frameRect(), QImage("images/ship.png"))
+		
+	#TODO: реализовать удаление из карты
+	def mousePressEvent(self, QMouseEvent):
+		#self.hide()
+		#del(self)
+		pass
 		
 class Line(QFrame):
 	def __init__(self, parent, rect, p1, p2):
@@ -418,6 +533,7 @@ class Line(QFrame):
 		qp.setPen(pen)
 		
 		qp.drawLine(self.p1, self.p2)
+		
 		
 class Polygon(QFrame):
 	def __init__(self, parent, rect, vertices):
@@ -438,3 +554,31 @@ class Polygon(QFrame):
 		for i in range(len(self.vertices) - 1):
 			qp.drawLine(self.vertices[i], self.vertices[i + 1])
 		qp.drawLine(self.vertices[-1], self.vertices[0])
+		
+class Land(QFrame):
+	def __init__(self, parent, vertices):
+		super(Land, self).__init__(parent)
+		self.vertices = []
+		for item in vertices:
+			self.vertices.append(QPoint(item))
+		x0 = findMinX(vertices)
+		y0 = findMinY(vertices)
+		x1 = findMaxX(vertices)
+		y1 = findMaxY(vertices)
+		self.rect = QRect(QPoint(x0, y0), QPoint(x1, y1))
+		'''for item in self.vertices:
+			item -= rect.topLeft()'''
+		self.setGeometry(self.rect)
+		self.show()
+		
+	def paintEvent(self, event):
+		qp = QPainter()
+		qp.begin(self)
+		pen = QPen()
+		pen.setWidth(0)
+		qp.setBrush(QColor(Qt.green))
+		qp.setPen(pen)
+		
+		verticesToDraw = [item - self.rect.topLeft() for item in self.vertices]
+		polygon = QPolygon(verticesToDraw)
+		qp.drawPolygon(polygon)

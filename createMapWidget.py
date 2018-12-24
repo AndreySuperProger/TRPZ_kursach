@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QLabe
 from PyQt5.QtGui import QIntValidator, QPainter, QColor, QFont, QPen
 from PyQt5.QtCore import Qt
 from board import *
+from maps import *
 
 #Панель пиктограмм
 class AreasPanel(QWidget):
@@ -66,32 +67,36 @@ class CreateMapWidget(QWidget):
 	def __init__(self, parentWidget, parentDialog = None):
 		super(CreateMapWidget, self).__init__()
 		#self.setGeometry(400, 400, 500, 600)
-		self.move(300, 300)
+		#self.move(300, 300)
 		self.setWindowTitle('Створити карту')
-		self.areaPanelActivePict = None
 		self.parentWidget = parentWidget
 		
-		self.okBtn = QPushButton("Ok", self)
-		createFlowBtn = QPushButton("Задати напрям течії", self)
-		addParticlesBtn = QPushButton("Задати область забруднення", self)
-		
 		self.board = Board(self, [[(0, 0)]], 20)
+		
+		self.okBtn = QPushButton("Ok", self)
+		self.okBtn.move(15, 50)
+		self.okBtn.clicked.connect(self.okBtnSlot)
+		
+		createFlowBtn = QPushButton("Задати напрям течії", self)
+		createFlowBtn.move(15, 80)
+		createFlowBtn.clicked.connect(self.createFlowBtnSlot)
+		
+		addParticlesBtn = QPushButton("Задати область забруднення", self)
+		addParticlesBtn.move(15, 110)
+		addParticlesBtn.clicked.connect(self.addParticlesBtnSlot)
+		
+		addShipBtn = QPushButton("Додати корабель", self)
+		addShipBtn.move(15, 140)
+		addShipBtn.clicked.connect(self.addShipBtnSlot)
+		
+		addLandBtn = QPushButton("Додати землю", self)
+		addLandBtn.move(15, 170)
+		addLandBtn.clicked.connect(self.addLandBtnSlot)
+		
 		if parentDialog:
 			self.createNewMap(parentDialog)
 		else:
 			self.board.copy(parentWidget.board)
-			
-		boardWidth = self.board.width()
-		boardHeight = self.board.height()
-		
-		self.okBtn.move(15 + boardWidth, 50)
-		self.okBtn.clicked.connect(self.okBtnSlot)
-		
-		createFlowBtn.move(15 + boardWidth, 80)
-		createFlowBtn.clicked.connect(self.createFlowBtnSlot)
-		
-		addParticlesBtn.move(15 + boardWidth, 110)
-		addParticlesBtn.clicked.connect(self.addParticlesBtnSlot)
 		
 		self.show()
 	
@@ -127,21 +132,32 @@ class CreateMapWidget(QWidget):
 		self.parentWidget.board.hide()
 		self.parentWidget.board.copy(self.board)
 		self.parentWidget.board.show()
-		boardWidth = self.parentWidget.board.width()
-		boardHeight = self.parentWidget.board.height()
-		self.parentWidget.stepBtn.move(15 + boardWidth, 50)
-		self.parentWidget.flowMapEditBtn.move(15 + boardWidth, 80)
-		self.parentWidget.createMapBtn.move(15 + boardWidth, 110)
 		self.parentWidget.show()
 		del(self)
 		
 	def createFlowBtnSlot(self):
 		self.board.editFlowPermited = True
-		self.board.drawPoisonedAreaPermitted = False
+		self.board.drawPoisonedAreaPermited = False
+		self.board.addShipPermited = False
+		self.board.addLandPermited = False
 		
 	def addParticlesBtnSlot(self):
-		self.board.drawPoisonedAreaPermitted = True
+		self.board.drawPoisonedAreaPermited = True
 		self.board.editFlowPermited = False
+		self.board.addShipPermited = False
+		self.board.addLandPermited = False
+		
+	def addShipBtnSlot(self):
+		self.board.drawPoisonedAreaPermited = False
+		self.board.editFlowPermited = False
+		self.board.addShipPermited = True
+		self.board.addLandPermited = False
+		
+	def addLandBtnSlot(self):
+		self.board.drawPoisonedAreaPermited = False
+		self.board.editFlowPermited = False
+		self.board.addShipPermited = False
+		self.board.addLandPermited = True
 		
 	#слот для обработки кликов на панели пиктограм
 	def areaPanelClickedSlot(self):
