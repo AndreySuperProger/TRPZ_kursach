@@ -1,15 +1,8 @@
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QLabel, QDialog
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLineEdit, QLabel, QDialog, QSlider
 from PyQt5.QtGui import QIntValidator, QPainter, QColor, QFont, QPen
 from PyQt5.QtCore import Qt
 from board import *
 from maps import *
-
-#Панель пиктограмм
-class AreasPanel(QWidget):
-	def __init__(self, parentWidget):
-		super(AreasPanel, self).__init__(parentWidget)
-		
-		self.show()
 
 #Диалог о параметрах карты
 class CreateMapDialog(QDialog):
@@ -66,39 +59,86 @@ class CreateMapDialog(QDialog):
 class CreateMapWidget(QWidget):
 	def __init__(self, parentWidget, parentDialog = None):
 		super(CreateMapWidget, self).__init__()
-		#self.setGeometry(400, 400, 500, 600)
-		#self.move(300, 300)
 		self.setWindowTitle('Створити карту')
 		self.parentWidget = parentWidget
 		
 		self.board = Board(self, [[(0, 0)]], 20)
 		
-		self.okBtn = QPushButton("Ok", self)
-		self.okBtn.move(15, 50)
-		self.okBtn.clicked.connect(self.okBtnSlot)
+		firstBtnPos = QPoint(15, 0)
 		
 		createFlowBtn = QPushButton("Задати напрям течії", self)
-		createFlowBtn.move(15, 80)
+		createFlowBtn.move(firstBtnPos + QPoint(0, 30))
 		createFlowBtn.clicked.connect(self.createFlowBtnSlot)
 		
+		createFlowBtn = QPushButton("Задати напрям вітру", self)
+		createFlowBtn.move(firstBtnPos + QPoint(150, 30))
+		createFlowBtn.clicked.connect(self.createFlowBtnSlot)
+		
+		lbl1 = QLabel("Сила вітру/течії:", self)
+		lbl1.move(firstBtnPos + QPoint(0, 70))
+		self.forceEdit = self.addEdit(firstBtnPos + QPoint(135, 70))
+		
+		lbl1 = QLabel("Ширина області:", self)
+		lbl1.move(firstBtnPos + QPoint(0, 110))
+		self.widthEdit = self.addEdit(firstBtnPos + QPoint(135, 110))
+		
 		addParticlesBtn = QPushButton("Задати область забруднення", self)
-		addParticlesBtn.move(15, 110)
+		addParticlesBtn.move(firstBtnPos + QPoint(0, 200))
 		addParticlesBtn.clicked.connect(self.addParticlesBtnSlot)
 		
+		lbl1 = QLabel("Кількість частинок:", self)
+		lbl1.move(firstBtnPos + QPoint(0, 240))
+		self.amountEdit = self.addEdit(firstBtnPos + QPoint(135, 240))
+		
+		lbl1 = QLabel("Максимальний\nрозмір частинок:", self)
+		lbl1.move(firstBtnPos + QPoint(0, 280))
+		self.sizeEdit = self.addEdit(firstBtnPos + QPoint(135, 280))
+		
 		addShipBtn = QPushButton("Додати корабель", self)
-		addShipBtn.move(15, 140)
+		addShipBtn.move(firstBtnPos + QPoint(0, 400))
 		addShipBtn.clicked.connect(self.addShipBtnSlot)
 		
+		lbl1 = QLabel("Радіус дії корабля:", self)
+		lbl1.move(firstBtnPos + QPoint(0, 440))
+		self.radiusEdit = self.addEdit(firstBtnPos + QPoint(135, 440))
+		
+		lbl1 = QLabel("Швидкість корабля:", self)
+		lbl1.move(firstBtnPos + QPoint(0, 490))
+		self.velocityEdit = self.addEdit(firstBtnPos + QPoint(135, 490))
+		
 		addLandBtn = QPushButton("Додати землю", self)
-		addLandBtn.move(15, 170)
+		addLandBtn.move(firstBtnPos + QPoint(0, 560))
 		addLandBtn.clicked.connect(self.addLandBtnSlot)
+		
+		self.okBtn = QPushButton("Ok", self)
+		self.okBtn.move(firstBtnPos + QPoint(135, 560))
+		self.okBtn.clicked.connect(self.okBtnSlot)
 		
 		if parentDialog:
 			self.createNewMap(parentDialog)
 		else:
 			self.board.copy(parentWidget.board)
+		self.board.move(400, 10)
 		
 		self.show()
+		
+	'''def addEdit(self, x, y):
+		editElement = QLineEdit(self)
+		editElement.setValidator(QIntValidator())
+		editElement.setMaxLength(2)
+		editElement.setAlignment(Qt.AlignRight)
+		editElement.setFont(QFont("Arial", 20))
+		editElement.move(x, y)
+		return editElement'''
+		
+	def addEdit(self, p):
+		editElement = QLineEdit(self)
+		editElement.setValidator(QIntValidator())
+		editElement.setMaxLength(2)
+		editElement.setAlignment(Qt.AlignRight)
+		editElement.setFont(QFont("Arial", 20))
+		editElement.move(p)
+		return editElement
 	
 	def createNewMap(self, parentDialog):
 		self.board.hide()

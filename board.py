@@ -49,7 +49,7 @@ class Board(QWidget):
 		rows = len(flowMap)
 		cols = len(flowMap[0])
 		
-		self.setGeometry(300, 10, cols*areaSize, rows*areaSize)
+		#self.setGeometry(300, 10, cols*areaSize, rows*areaSize)
 		
 		self.setAutoFillBackground(True)
 		p = self.palette()
@@ -76,13 +76,22 @@ class Board(QWidget):
 		self.addShipPermited = False
 		self.addLandPermited = False
 		
+		self.landParticlesCount = 0
+		self.outMapParticlesCount = 0
+		
 		self.show()
 		
 	def copy(self, boardToCopy):
 		self.grid.copy(boardToCopy.grid)
 		for particle in self.particles:
 			particle.hide()
-			del(particle)
+			self.particles.remove(particle)
+		for ship in self.ships:
+			ship.hide()
+			self.ships.remove(ship)
+		for land in self.lands:
+			land.hide()
+			self.lands.remove(land)
 		for particleToCopy in boardToCopy.particles:
 			self.particles.append(Particle(self, particleToCopy.x,
 				particleToCopy.y, particleToCopy.rad))
@@ -99,6 +108,9 @@ class Board(QWidget):
 		cols = self.grid.cols
 		areaSize = self.grid.areaSize
 		self.setGeometry(300, 10, cols*areaSize, rows*areaSize)
+		self.landParticlesCount = boardToCopy.landParticlesCount
+		self.outMapParticlesCount = boardToCopy.outMapParticlesCount
+		
 		
 	def stepBtnSlot(self):
 		#движение частиц
@@ -108,7 +120,52 @@ class Board(QWidget):
 			i = int(y/self.grid.areaSize)
 			j = int(x/self.grid.areaSize)
 			#Рассчет поправок:
+			dx = x - j*self.grid.areaSize
+			dy = y - i*self.grid.areaSize
+			
+			f1 = f2 = f3 = f4 = QPoint(0, 0)
+			if dx >= 0 and dy >= 0:	#4 четверть
+				try:
+					f1 = self.grid.cellMrx[i][j].vector
+					f2 = self.grid.cellMrx[i][j + 1].vector
+					f3 = self.grid.cellMrx[i + 1][j + 1].vector
+					f3 = self.grid.cellMrx[i + 1][j].vector
+				except:
+					pass
+			elif dx <= 0 and dy >= 0:	#3 четверть
+				try:
+					f1 = self.grid.cellMrx[i][j].vector
+					f2 = self.grid.cellMrx[i][j - 1].vector
+					f3 = self.grid.cellMrx[i + 1][j - 1].vector
+					f3 = self.grid.cellMrx[i + 1][j].vector
+				except:
+					pass
+			elif dx <= 0 and dy <= 0:	#2 четверть
+				try:
+					f1 = self.grid.cellMrx[i][j].vector
+					f2 = self.grid.cellMrx[i][j - 1].vector
+					f3 = self.grid.cellMrx[i - 1][j - 1].vector
+					f3 = self.grid.cellMrx[i - 1][j].vector
+				except:
+					pass
+			elif dx >= 0 and dy <= 0:	#1 четверть
+				try:
+					f1 = self.grid.cellMrx[i][j].vector
+					f2 = self.grid.cellMrx[i][j + 1].vector
+					f3 = self.grid.cellMrx[i - 1][j + 1].vector
+					f3 = self.grid.cellMrx[i - 1][j].vector
+				except:
+					pass
+					
+			f = f1 + f2 + f3 + f4
+			#f /= 4
 			k = particle.rad
+			dx = f.x()/k
+			dy = f.y()/k
+			particle.move(x - particle.rad + dx, y - particle.rad + dy)
+			particle.x += dx
+			particle.y += dy
+			'''k = particle.rad
 			dx = dy = 0
 			try:
 				dx = self.grid.cellMrx[i][j].vector.x()/k
@@ -118,7 +175,7 @@ class Board(QWidget):
 			#TODO: учесть соседние вектора(может быть)
 			particle.move(x - particle.rad + dx, y - particle.rad + dy)
 			particle.x += dx
-			particle.y += dy
+			particle.y += dy'''
 			#Поподание частиц на землю:
 			#TODO: посчитать к-ство
 			point = QPoint(particle.x, particle.y)
@@ -126,6 +183,16 @@ class Board(QWidget):
 				if checkIfPointInsidePolygon(point, land.vertices):
 					particle.hide()
 					self.particles.remove(particle)
+					self.landParticlesCount += 1
+					self.parent().landParticlesCountLabel.setText(
+						str(self.landParticlesCount))
+						
+			mapPolygon = [QPoint(0, 0), QPoint(self.width(), 0),
+				QPoint(self.width(), self.height()), QPoint(0, self.height())]
+			if checkIfPointInsidePolygon(point, mapPolygon) == False:
+				self.outMapParticlesCount += 1
+				self.parent().outMapParticlesCountLabel.setText = (
+					str(self.outMapParticlesCount))
 			
 		#движение кораблей и очищение воды
 		for ship in self.ships:
@@ -164,9 +231,14 @@ class Board(QWidget):
 	def mousePressEvent(self, QMouseEvent):
 		if self.editFlowPermited:
 			force = 10
-			width = 5
+			width = 20
 			eps0 = 2
 			eps = 16
+			try:
+				force = int(self.parent().forceEdit.text())
+				width = int(self.parent().widthEdit.text())
+			except:
+				pass
 			if self.clicked:
 				x1 = self.mouse_x1
 				y1 = self.mouse_y1
@@ -178,120 +250,38 @@ class Board(QWidget):
 				try:
 					vector = ((x2 - x1)/length*force, (y2 - y1)/length*force)
 				except:
-					pass
+					return
 				areaSize = self.grid.areaSize
 				
-				#TODO: исправить этот дерьмокод
-				#Ниже от y1
-				for k in range(width):
-					point = [x1, y1+k*areaSize/eps0]
-					if (x2 > x1 and y2 > y1):
-						while point[0] <= x2 and point[1] <= y2:
-							try:
-								i = int(point[1]/self.grid.areaSize)
-								j = int(point[0]/self.grid.areaSize)
-								cell = self.grid.cellMrx[i][j]
-								cell.vector = QPoint(vector[0], vector[1])
-								self.grid.flowMap[i][j] = (vector[0], vector[1])
-								cell.update()
-								point[0] += vector[0]*areaSize/eps
-								point[1] += vector[1]*areaSize/eps
-							except:
-								pass
-					elif (x2 <= x1 and y2 > y1):
-						while point[0] >= x2 and point[1] <= y2:
-							try:
-								i = int(point[1]/self.grid.areaSize)
-								j = int(point[0]/self.grid.areaSize)
-								cell = self.grid.cellMrx[i][j]
-								cell.vector = QPoint(vector[0], vector[1])
-								self.grid.flowMap[i][j] = (vector[0], vector[1])
-								cell.update()
-								point[0] += vector[0]*areaSize/eps
-								point[1] += vector[1]*areaSize/eps
-							except:
-								pass
-					elif (x2 > x1 and y2 <= y1):
-						while point[0] <= x2 and point[1] >= y2:
-							try:
-								i = int(point[1]/self.grid.areaSize)
-								j = int(point[0]/self.grid.areaSize)
-								cell = self.grid.cellMrx[i][j]
-								cell.vector = QPoint(vector[0], vector[1])
-								self.grid.flowMap[i][j] = (vector[0], vector[1])
-								cell.update()
-								point[0] += vector[0]*areaSize/eps
-								point[1] += vector[1]*areaSize/eps
-							except:
-								pass
-					elif (x2 <= x1 and y2 <= y1):
-						while point[0] >= x2 and point[1] >= y2:
-							try:
-								i = int(point[1]/self.grid.areaSize)
-								j = int(point[0]/self.grid.areaSize)
-								cell = self.grid.cellMrx[i][j]
-								cell.vector = QPoint(vector[0], vector[1])
-								self.grid.flowMap[i][j] = (vector[0], vector[1])
-								cell.update()
-								point[0] += vector[0]*areaSize/eps
-								point[1] += vector[1]*areaSize/eps
-							except:
-								pass
-				#Выше от y1
-				for k in range(width):
-					point = [x1, y1-k*areaSize/eps0]
-					if (x2 > x1 and y2 > y1):
-						while point[0] <= x2 and point[1] <= y2:
-							try:
-								i = int(point[1]/self.grid.areaSize)
-								j = int(point[0]/self.grid.areaSize)
-								cell = self.grid.cellMrx[i][j]
-								cell.vector = QPoint(vector[0], vector[1])
-								self.grid.flowMap[i][j] = (vector[0], vector[1])
-								cell.update()
-								point[0] += vector[0]*areaSize/eps
-								point[1] += vector[1]*areaSize/eps
-							except:
-								pass
-					elif (x2 <= x1 and y2 > y1):
-						while point[0] >= x2 and point[1] <= y2:
-							try:
-								i = int(point[1]/self.grid.areaSize)
-								j = int(point[0]/self.grid.areaSize)
-								cell = self.grid.cellMrx[i][j]
-								cell.vector = QPoint(vector[0], vector[1])
-								self.grid.flowMap[i][j] = (vector[0], vector[1])
-								cell.update()
-								point[0] += vector[0]*areaSize/eps
-								point[1] += vector[1]*areaSize/eps
-							except:
-								pass
-					elif (x2 > x1 and y2 <= y1):
-						while point[0] <= x2 and point[1] >= y2:
-							try:
-								i = int(point[1]/self.grid.areaSize)
-								j = int(point[0]/self.grid.areaSize)
-								cell = self.grid.cellMrx[i][j]
-								cell.vector = QPoint(vector[0], vector[1])
-								self.grid.flowMap[i][j] = (vector[0], vector[1])
-								cell.update()
-								point[0] += vector[0]*areaSize/eps
-								point[1] += vector[1]*areaSize/eps
-							except:
-								pass
-					elif (x2 <= x1 and y2 <= y1):
-						while point[0] >= x2 and point[1] >= y2:
-							try:
-								i = int(point[1]/self.grid.areaSize)
-								j = int(point[0]/self.grid.areaSize)
-								cell = self.grid.cellMrx[i][j]
-								cell.vector = QPoint(vector[0], vector[1])
-								self.grid.flowMap[i][j] = (vector[0], vector[1])
-								cell.update()
-								point[0] += vector[0]*areaSize/eps
-								point[1] += vector[1]*areaSize/eps
-							except:
-								pass
+				alpha = 0
+				try:
+					alpha = math.atan((y2 - y1)/(x2 - x1))
+				except:
+					return
+				ws = width*math.sin(-alpha)
+				wc = width*math.cos(-alpha)
+				x01 = ws + x1
+				y01 = wc + y1
+				x02 = ws + x2
+				y02 = wc + y2
+				x03 = -ws + x2
+				y03 = -wc + y2
+				x04 = -ws + x1
+				y04 = -wc + y1
+				
+				polygon = [QPoint(x01, y01), QPoint(x02, y02),
+					QPoint(x03, y03), QPoint(x04, y04)]
+				for i in range(len(self.grid.cellMrx)):
+					for j in range(len(self.grid.cellMrx[0])):
+						cell = self.grid.cellMrx[i][j]
+						if checkIfPointInsidePolygon(cell.pos(), polygon) \
+							or checkIfPointInsidePolygon(cell.pos() + QPoint(cell.areaSize, 0), polygon) \
+							or checkIfPointInsidePolygon(cell.pos() + QPoint(cell.areaSize, cell.areaSize), polygon) \
+							or checkIfPointInsidePolygon(cell.pos() + QPoint(0, cell.areaSize), polygon):
+							cell.vector = QPoint(vector[0], vector[1])
+							self.grid.flowMap[i][j] = (vector[0], vector[1])
+							cell.update()
+				
 				self.clicked = False
 			else:
 				self.mouse_x1 = QMouseEvent.x()
@@ -311,6 +301,11 @@ class Board(QWidget):
 					amount = 50
 					maxSize = 10
 					try:
+						amount = int(self.parent().amountEdit.text())
+						maxSize = int(self.parent().sizeEdit.text())
+					except:
+						pass
+					try:
 						self.generateRandomParticles(amount, maxSize)
 					except:
 						pass
@@ -329,6 +324,11 @@ class Board(QWidget):
 			y = QMouseEvent.y()
 			velocity = 10
 			rad = 20
+			try:
+				rad = int(self.parent().radiusEdit.text())
+				velocity = int(self.parent().velocityEdit.text())
+			except:
+				pass
 			self.ships.append(Ship(self, x, y, rad, velocity))
 		
 		elif self.addLandPermited:
@@ -423,7 +423,6 @@ class GridCell(QFrame):
 		self.setGeometry(j*areaSize, i*areaSize, areaSize, areaSize)
 		self.areaSize = areaSize
 		self.vector = vector
-		#self.arrow = Arrow(self, 10, areaSize)
 		self.show()
 	
 	def paintEvent(self, event):
@@ -454,24 +453,6 @@ class GridCell(QFrame):
 			qp.drawLine(QPoint(0, 0), QPoint(0, vectorLength))
 			qp.drawLine(QPoint(0, vectorLength), QPoint(-3, vectorLength -3))
 			qp.drawLine(QPoint(0, vectorLength), QPoint(3, vectorLength -3))
-		
-class Arrow(QFrame):
-	def __init__(self, parent, length, areaSize):
-		super(Arrow, self).__init__(parent)
-		self.setGeometry(0, 0, length, areaSize)
-		self.length = length
-		self.areaSize = areaSize
-		self.show()
-	
-	def paintEvent(self, event):
-		qp = QPainter()
-		qp.begin(self)
-		pen = QPen()
-		pen.setWidth(1)
-		qp.setPen(pen)
-		
-		qp.drawLine(QPoint(self.areaSize/2, self.areaSize/2), QPoint(0, self.length))
-		
 		
 #частица пятна
 class Particle(QFrame):
@@ -533,27 +514,6 @@ class Line(QFrame):
 		qp.setPen(pen)
 		
 		qp.drawLine(self.p1, self.p2)
-		
-		
-class Polygon(QFrame):
-	def __init__(self, parent, rect, vertices):
-		super(Polygon, self).__init__(parent)
-		self.vertices = vertices
-		for item in self.vertices:
-			item -= rect.topLeft()
-		self.setGeometry(rect)
-		self.show()
-		
-	def paintEvent(self, event):
-		qp = QPainter()
-		qp.begin(self)
-		pen = QPen()
-		pen.setWidth(1)
-		qp.setPen(pen)
-		
-		for i in range(len(self.vertices) - 1):
-			qp.drawLine(self.vertices[i], self.vertices[i + 1])
-		qp.drawLine(self.vertices[-1], self.vertices[0])
 		
 class Land(QFrame):
 	def __init__(self, parent, vertices):

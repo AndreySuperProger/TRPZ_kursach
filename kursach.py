@@ -14,6 +14,7 @@ class MainWindow(QWidget):
 		self.setWindowTitle("Прогнозування розповсюдження полютантів")
 		
 		self.board = Board(self, testMap2, 20)
+		self.board.move(280, 10)
 		
 		self.stepBtn = QPushButton("Крок", self)
 		self.stepBtn.move(15, 20)
@@ -30,6 +31,18 @@ class MainWindow(QWidget):
 		self.createMapBtn = QPushButton("Створити нову карту", self)
 		self.createMapBtn.move(15, 110)
 		self.createMapBtn.clicked.connect(self.createMapBtnSlot)
+		
+		lbl1 = QLabel("Частинок потрапило на узбережжя:", self)
+		lbl1.move(15, 240)
+		
+		self.landParticlesCountLabel = QLabel("0", self)
+		self.landParticlesCountLabel.move(15, 270)
+		
+		lbl1 = QLabel("Частинок вийшло за межі карти:", self)
+		lbl1.move(15, 300)
+		
+		self.outMapParticlesCountLabel = QLabel("0", self)
+		self.outMapParticlesCountLabel.move(15, 330)
 		
 		self.show()
 		
