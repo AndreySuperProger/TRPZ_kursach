@@ -39,12 +39,15 @@ def findMaxY(array):
 	
 def checkIfPointInsidePolygon(point, array):
 	shPoint = ShapelyPoint(point.x(), point.y())
-	polygon = ShapelyPolygon([(arrPoint.x(), arrPoint.y()) for arrPoint in array])
+	try:
+		polygon = ShapelyPolygon([(arrPoint.x(), arrPoint.y()) for arrPoint in array])
+	except:
+		return False
 	return polygon.contains(shPoint)
 
 
 class Board(QWidget):
-	def __init__(self, parent, flowMap, areaSize):
+	def __init__(self, parent, flowMap, windMap, areaSize):
 		super(Board, self).__init__(parent)
 		rows = len(flowMap)
 		cols = len(flowMap[0])
@@ -56,7 +59,10 @@ class Board(QWidget):
 		p.setColor(self.backgroundRole(), Qt.white)
 		self.setPalette(p)
 		
-		self.grid = Grid(self, flowMap, areaSize)
+		#self.grid = Grid(self, flowMap, areaSize)
+		
+		self.flowGrid = Grid(self, flowMap, areaSize, Qt.blue)
+		self.windGrid = Grid(self, windMap, areaSize, Qt.red)
 		
 		self.particles = []
 		
@@ -68,6 +74,7 @@ class Board(QWidget):
 		self.mouse_x1 = 0
 		self.mouse_y1 = 0
 		self.editFlowPermited = False
+		self.editWindPermited = False
 		
 		self.polygonVertices = []
 		self.polygonLines = []
@@ -82,7 +89,8 @@ class Board(QWidget):
 		self.show()
 		
 	def copy(self, boardToCopy):
-		self.grid.copy(boardToCopy.grid)
+		self.flowGrid.copy(boardToCopy.flowGrid)
+		self.windGrid.copy(boardToCopy.windGrid)
 		for particle in self.particles:
 			particle.hide()
 			self.particles.remove(particle)
@@ -104,9 +112,12 @@ class Board(QWidget):
 		for landToCopy in boardToCopy.lands:
 			vertices = landToCopy.vertices
 			self.lands.append(Land(self, vertices))
-		rows = self.grid.rows
-		cols = self.grid.cols
-		areaSize = self.grid.areaSize
+		'''rows = self.flowGrid.rows
+		cols = self.flowGrid.cols
+		areaSize = self.flowGrid.areaSize'''
+		rows = self.windGrid.rows
+		cols = self.windGrid.cols
+		areaSize = self.windGrid.areaSize
 		self.setGeometry(300, 10, cols*areaSize, rows*areaSize)
 		self.landParticlesCount = boardToCopy.landParticlesCount
 		self.outMapParticlesCount = boardToCopy.outMapParticlesCount
@@ -117,47 +128,150 @@ class Board(QWidget):
 		for particle in self.particles:
 			x = particle.x
 			y = particle.y
-			i = int(y/self.grid.areaSize)
-			j = int(x/self.grid.areaSize)
+			i = int(y/self.flowGrid.areaSize)
+			j = int(x/self.flowGrid.areaSize)
 			#Рассчет поправок:
-			dx = x - j*self.grid.areaSize
-			dy = y - i*self.grid.areaSize
+			dx = x - j*self.flowGrid.areaSize
+			dy = y - i*self.flowGrid.areaSize
 			
 			f1 = f2 = f3 = f4 = QPoint(0, 0)
+			f5 = f6 = f7 = f8 = QPoint(0, 0)
 			if dx >= 0 and dy >= 0:	#4 четверть
 				try:
-					f1 = self.grid.cellMrx[i][j].vector
-					f2 = self.grid.cellMrx[i][j + 1].vector
-					f3 = self.grid.cellMrx[i + 1][j + 1].vector
-					f3 = self.grid.cellMrx[i + 1][j].vector
+					f1 = self.flowGrid.cellMrx[i][j].vector
+				except:
+					pass
+				try:
+					f2 = self.flowGrid.cellMrx[i][j + 1].vector
+				except:
+					pass
+				try:	
+					f3 = self.flowGrid.cellMrx[i + 1][j + 1].vector
+				except:
+					pass
+				try:
+					f4 = self.flowGrid.cellMrx[i + 1][j].vector
+				except:
+					pass
+				try:
+					f5 = self.windGrid.cellMrx[i][j].vector
+				except:
+					pass
+				try:
+					f6 = self.windGrid.cellMrx[i][j + 1].vector
+				except:
+					pass
+				try:
+					f7 = self.windGrid.cellMrx[i + 1][j + 1].vector
+				except:
+					pass
+				try:
+					f8 = self.windGrid.cellMrx[i + 1][j].vector
 				except:
 					pass
 			elif dx <= 0 and dy >= 0:	#3 четверть
 				try:
-					f1 = self.grid.cellMrx[i][j].vector
-					f2 = self.grid.cellMrx[i][j - 1].vector
-					f3 = self.grid.cellMrx[i + 1][j - 1].vector
-					f3 = self.grid.cellMrx[i + 1][j].vector
+					f1 = self.flowGrid.cellMrx[i][j].vector
+				except:
+					pass
+				try:
+					f2 = self.flowGrid.cellMrx[i][j - 1].vector
+				except:
+					pass
+				try:
+					f3 = self.flowGrid.cellMrx[i + 1][j - 1].vector
+				except:
+					pass
+				try:
+					f4 = self.flowGrid.cellMrx[i + 1][j].vector
+				except:
+					pass
+				try:
+					f5 = self.windGrid.cellMrx[i][j].vector
+				except:
+					pass
+				try:
+					f6 = self.windGrid.cellMrx[i][j - 1].vector
+				except:
+					pass
+				try:
+					f7 = self.windGrid.cellMrx[i + 1][j - 1].vector
+				except:
+					pass
+				try:
+					f8 = self.windGrid.cellMrx[i + 1][j].vector
 				except:
 					pass
 			elif dx <= 0 and dy <= 0:	#2 четверть
 				try:
-					f1 = self.grid.cellMrx[i][j].vector
-					f2 = self.grid.cellMrx[i][j - 1].vector
-					f3 = self.grid.cellMrx[i - 1][j - 1].vector
-					f3 = self.grid.cellMrx[i - 1][j].vector
+					f1 = self.flowGrid.cellMrx[i][j].vector
+				except:
+					pass
+				try:
+					f2 = self.flowGrid.cellMrx[i][j - 1].vector
+				except:
+					pass
+				try:
+					f3 = self.flowGrid.cellMrx[i - 1][j - 1].vector
+				except:
+					pass
+				try:
+					f4 = self.flowGrid.cellMrx[i - 1][j].vector
+				except:
+					pass
+				try:
+					
+					f5 = self.windGrid.cellMrx[i][j].vector
+				except:
+					pass
+				try:
+					f6 = self.windGrid.cellMrx[i][j - 1].vector
+				except:
+					pass
+				try:
+					f7 = self.windGrid.cellMrx[i - 1][j - 1].vector
+				except:
+					pass
+				try:
+					f8 = self.windGrid.cellMrx[i - 1][j].vector
 				except:
 					pass
 			elif dx >= 0 and dy <= 0:	#1 четверть
 				try:
-					f1 = self.grid.cellMrx[i][j].vector
-					f2 = self.grid.cellMrx[i][j + 1].vector
-					f3 = self.grid.cellMrx[i - 1][j + 1].vector
-					f3 = self.grid.cellMrx[i - 1][j].vector
+					f1 = self.flowGrid.cellMrx[i][j].vector
+				except:
+					pass
+				try:
+					f2 = self.flowGrid.cellMrx[i][j + 1].vector
+				except:
+					pass
+				try:
+					f3 = self.flowGrid.cellMrx[i - 1][j + 1].vector
+				except:
+					pass
+				try:
+					f4 = self.flowGrid.cellMrx[i - 1][j].vector
+				except:
+					pass
+				try:
+					
+					f5 = self.windGrid.cellMrx[i][j].vector
+				except:
+					pass
+				try:
+					f6 = self.windGrid.cellMrx[i][j + 1].vector
+				except:
+					pass
+				try:
+					f7 = self.windGrid.cellMrx[i - 1][j + 1].vector
+				except:
+					pass
+				try:
+					f8 = self.windGrid.cellMrx[i - 1][j].vector
 				except:
 					pass
 					
-			f = f1 + f2 + f3 + f4
+			f = f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8
 			#f /= 4
 			k = particle.rad
 			dx = f.x()/k
@@ -182,16 +296,24 @@ class Board(QWidget):
 			for land in self.lands:
 				if checkIfPointInsidePolygon(point, land.vertices):
 					particle.hide()
-					self.particles.remove(particle)
+					try:
+						self.particles.remove(particle)
+					except:
+						pass
 					self.landParticlesCount += 1
 					self.parent().landParticlesCountLabel.setText(
 						str(self.landParticlesCount))
-						
+			#Поподание частиц за пределы карты:
 			mapPolygon = [QPoint(0, 0), QPoint(self.width(), 0),
 				QPoint(self.width(), self.height()), QPoint(0, self.height())]
 			if checkIfPointInsidePolygon(point, mapPolygon) == False:
+				particle.hide()
+				try:
+					self.particles.remove(particle)
+				except:
+					pass
 				self.outMapParticlesCount += 1
-				self.parent().outMapParticlesCountLabel.setText = (
+				self.parent().outMapParticlesCountLabel.setText(
 					str(self.outMapParticlesCount))
 			
 		#движение кораблей и очищение воды
@@ -251,7 +373,7 @@ class Board(QWidget):
 					vector = ((x2 - x1)/length*force, (y2 - y1)/length*force)
 				except:
 					return
-				areaSize = self.grid.areaSize
+				areaSize = self.flowGrid.areaSize
 				
 				alpha = 0
 				try:
@@ -271,15 +393,74 @@ class Board(QWidget):
 				
 				polygon = [QPoint(x01, y01), QPoint(x02, y02),
 					QPoint(x03, y03), QPoint(x04, y04)]
-				for i in range(len(self.grid.cellMrx)):
-					for j in range(len(self.grid.cellMrx[0])):
-						cell = self.grid.cellMrx[i][j]
+				for i in range(len(self.flowGrid.cellMrx)):
+					for j in range(len(self.flowGrid.cellMrx[0])):
+						cell = self.flowGrid.cellMrx[i][j]
 						if checkIfPointInsidePolygon(cell.pos(), polygon) \
 							or checkIfPointInsidePolygon(cell.pos() + QPoint(cell.areaSize, 0), polygon) \
 							or checkIfPointInsidePolygon(cell.pos() + QPoint(cell.areaSize, cell.areaSize), polygon) \
 							or checkIfPointInsidePolygon(cell.pos() + QPoint(0, cell.areaSize), polygon):
 							cell.vector = QPoint(vector[0], vector[1])
-							self.grid.flowMap[i][j] = (vector[0], vector[1])
+							self.flowGrid.flowMap[i][j] = (vector[0], vector[1])
+							cell.update()
+				
+				self.clicked = False
+			else:
+				self.mouse_x1 = QMouseEvent.x()
+				self.mouse_y1 = QMouseEvent.y()
+				self.clicked = True
+				
+		elif self.editWindPermited:
+			force = 10
+			width = 20
+			eps0 = 2
+			eps = 16
+			try:
+				force = int(self.parent().forceEdit.text())
+				width = int(self.parent().widthEdit.text())
+			except:
+				pass
+			if self.clicked:
+				x1 = self.mouse_x1
+				y1 = self.mouse_y1
+				x2 = QMouseEvent.x()
+				y2 = QMouseEvent.y()
+				
+				length = ((x2 - x1)**2 + (y2 - y1)**2)**(0.5)
+				vector = 0
+				try:
+					vector = ((x2 - x1)/length*force, (y2 - y1)/length*force)
+				except:
+					return
+				areaSize = self.windGrid.areaSize
+				
+				alpha = 0
+				try:
+					alpha = math.atan((y2 - y1)/(x2 - x1))
+				except:
+					return
+				ws = width*math.sin(-alpha)
+				wc = width*math.cos(-alpha)
+				x01 = ws + x1
+				y01 = wc + y1
+				x02 = ws + x2
+				y02 = wc + y2
+				x03 = -ws + x2
+				y03 = -wc + y2
+				x04 = -ws + x1
+				y04 = -wc + y1
+				
+				polygon = [QPoint(x01, y01), QPoint(x02, y02),
+					QPoint(x03, y03), QPoint(x04, y04)]
+				for i in range(len(self.windGrid.cellMrx)):
+					for j in range(len(self.windGrid.cellMrx[0])):
+						cell = self.windGrid.cellMrx[i][j]
+						if checkIfPointInsidePolygon(cell.pos(), polygon) \
+							or checkIfPointInsidePolygon(cell.pos() + QPoint(cell.areaSize, 0), polygon) \
+							or checkIfPointInsidePolygon(cell.pos() + QPoint(cell.areaSize, cell.areaSize), polygon) \
+							or checkIfPointInsidePolygon(cell.pos() + QPoint(0, cell.areaSize), polygon):
+							cell.vector = QPoint(vector[0], vector[1])
+							self.windGrid.flowMap[i][j] = (vector[0], vector[1])
 							cell.update()
 				
 				self.clicked = False
@@ -376,20 +557,25 @@ class Board(QWidget):
 		self.polygonVertices.clear()
 		
 class Grid(QWidget):
-	def __init__(self, parent, flowMap, areaSize):
+	def __init__(self, parent, flowMap, areaSize, color):
 		super(Grid, self).__init__(parent)
-		self.flowMap = flowMap
+		#self.flowMap = flowMap
 		self.areaSize = areaSize
+		self.color = color
 		rows = len(flowMap)
 		cols = len(flowMap[0])
 		self.rows = rows
 		self.cols = cols
+		self.flowMap = [[(0, 0) for j in range(self.cols)] for i in range(self.rows)]
+		for i in range(self.rows):
+			for j in range(self.cols):
+				self.flowMap[i][j] = flowMap[i][j]
 		self.cellMrx = [[None for j in range(cols)] for i in range(rows)]
 		for i in range(rows):
 			for j in range(cols):
 				x = flowMap[i][j][0]
 				y = flowMap[i][j][1]
-				self.cellMrx[i][j] = GridCell(self, j, i, areaSize, QPoint(x, y))
+				self.cellMrx[i][j] = GridCell(self, j, i, areaSize, QPoint(x, y), color)
 		self.setGeometry(0, 0, cols*areaSize, rows*areaSize)
 				
 	def copy(self, gridToCopy):
@@ -400,8 +586,15 @@ class Grid(QWidget):
 				del(self.cellMrx[i][j])
 		del(self.cellMrx)
 				
-		self.flowMap = gridToCopy.flowMap
+		#self.flowMap = gridToCopy.flowMap
+		self.rows = len(gridToCopy.flowMap)
+		self.cols = len(gridToCopy.flowMap[0])
+		self.flowMap = [[(0, 0) for j in range(self.cols)] for i in range(self.rows)]
+		for i in range(self.rows):
+			for j in range(self.cols):
+				self.flowMap[i][j] = gridToCopy.flowMap[i][j]
 		self.areaSize = gridToCopy.areaSize
+		self.color = gridToCopy.color
 		areaSize = self.areaSize
 		rows = len(self.flowMap)
 		cols = len(self.flowMap[0])
@@ -413,16 +606,17 @@ class Grid(QWidget):
 			for j in range(cols):
 				x = self.flowMap[i][j][0]
 				y = self.flowMap[i][j][1]
-				self.cellMrx[i][j] = GridCell(self, j, i, self.areaSize, QPoint(x, y))
+				self.cellMrx[i][j] = GridCell(self, j, i, self.areaSize, QPoint(x, y), self.color)
 		self.setGeometry(0, 0, cols*areaSize, rows*areaSize)
 		
 		
 class GridCell(QFrame):
-	def __init__(self, parent, j, i, areaSize, vector):
+	def __init__(self, parent, j, i, areaSize, vector, color):
 		super(GridCell, self).__init__(parent)
 		self.setGeometry(j*areaSize, i*areaSize, areaSize, areaSize)
 		self.areaSize = areaSize
 		self.vector = vector
+		self.color = color
 		self.show()
 	
 	def paintEvent(self, event):
@@ -430,6 +624,7 @@ class GridCell(QFrame):
 		qp.begin(self)
 		pen = QPen()
 		pen.setWidth(1)
+		pen.setColor(self.color)
 		qp.setPen(pen)
 		qp.setBrush(Qt.red)
 		

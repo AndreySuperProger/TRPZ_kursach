@@ -22,14 +22,6 @@ class CreateMapDialog(QDialog):
 		lbl3.move(20, 100)
 		self.areaSizeEdit = self.addEdit(170, 100)
 		
-		'''lbl4 = QLabel("Інтервал:", self)
-		lbl4.move(20, 140)
-		self.intervalEdit = self.addEdit(170, 140)
-		
-		lbl5 = QLabel("Дистанція:", self)
-		lbl5.move(20, 180)
-		self.distanceEdit = self.addEdit(170, 180)'''
-		
 		lbl6 = QLabel("Радіус дії кораблів:", self)
 		lbl6.move(20, 220)
 		self.shipRadEdit = self.addEdit(170, 220)
@@ -62,7 +54,7 @@ class CreateMapWidget(QWidget):
 		self.setWindowTitle('Створити карту')
 		self.parentWidget = parentWidget
 		
-		self.board = Board(self, [[(0, 0)]], 20)
+		self.board = Board(self, [[(0, 0)]], [[(0, 0)]], 20)
 		
 		firstBtnPos = QPoint(15, 0)
 		
@@ -70,9 +62,9 @@ class CreateMapWidget(QWidget):
 		createFlowBtn.move(firstBtnPos + QPoint(0, 30))
 		createFlowBtn.clicked.connect(self.createFlowBtnSlot)
 		
-		createFlowBtn = QPushButton("Задати напрям вітру", self)
-		createFlowBtn.move(firstBtnPos + QPoint(150, 30))
-		createFlowBtn.clicked.connect(self.createFlowBtnSlot)
+		createWindBtn = QPushButton("Задати напрям вітру", self)
+		createWindBtn.move(firstBtnPos + QPoint(150, 30))
+		createWindBtn.clicked.connect(self.createWindBtnSlot)
 		
 		lbl1 = QLabel("Сила вітру/течії:", self)
 		lbl1.move(firstBtnPos + QPoint(0, 70))
@@ -162,8 +154,7 @@ class CreateMapWidget(QWidget):
 		'''self.flowGrid = Grid(self, [[(0, 0) for j in range(cols)] for i in range(raws)])
 		self.flowGrid.show()'''
 		emptyMap = [[(0, 0) for j in range(cols)] for i in range(rows)]
-		self.board = Board(self, emptyMap, areaSize)
-		self.okBtn.move(15 + self.board.width(), 50)
+		self.board = Board(self, emptyMap, emptyMap, areaSize)
 		self.hide()
 		self.show()
 		
@@ -177,6 +168,14 @@ class CreateMapWidget(QWidget):
 		
 	def createFlowBtnSlot(self):
 		self.board.editFlowPermited = True
+		self.board.editWindPermited = False
+		self.board.drawPoisonedAreaPermited = False
+		self.board.addShipPermited = False
+		self.board.addLandPermited = False
+		
+	def createWindBtnSlot(self):
+		self.board.editFlowPermited = False
+		self.board.editWindPermited = True
 		self.board.drawPoisonedAreaPermited = False
 		self.board.addShipPermited = False
 		self.board.addLandPermited = False
@@ -184,18 +183,21 @@ class CreateMapWidget(QWidget):
 	def addParticlesBtnSlot(self):
 		self.board.drawPoisonedAreaPermited = True
 		self.board.editFlowPermited = False
+		self.board.editWindPermited = False
 		self.board.addShipPermited = False
 		self.board.addLandPermited = False
 		
 	def addShipBtnSlot(self):
 		self.board.drawPoisonedAreaPermited = False
 		self.board.editFlowPermited = False
+		self.board.editWindPermited = False
 		self.board.addShipPermited = True
 		self.board.addLandPermited = False
 		
 	def addLandBtnSlot(self):
 		self.board.drawPoisonedAreaPermited = False
 		self.board.editFlowPermited = False
+		self.board.editWindPermited = False
 		self.board.addShipPermited = False
 		self.board.addLandPermited = True
 		
